@@ -1,0 +1,27 @@
+# Photographs of the printed menu. Kept out of the repo because they are 3 MB of
+# WhatsApp images; db/seed/menu.ts is the transcription that matters.
+Menu/
+
+node_modules/
+
+# env files - never commit real credentials
+.env
+.env.*
+!.env.example
+
+# local embedded Postgres data
+.data/
+
+# build output
+dist/
+build/
+coverage/
+
+# logs & editor noise
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+tsconfig.tsbuildinfo
+.vscode/
+.idea/

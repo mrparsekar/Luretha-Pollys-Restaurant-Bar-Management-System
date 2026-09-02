@@ -1,0 +1,44 @@
+{
+  "name": "luretha-pollys-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "REST API for Luretha & Pollys Bar & Restaurant - orders, billing, reports",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:reset": "node -e \"require('fs').rmSync('.data',{recursive:true,force:true})\" && npm run db:migrate && npm run db:seed",
+    "smoke": "tsx scripts/smoke.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.6",
+    "drizzle-orm": "0.45.2",
+    "express": "5.2.1",
+    "nodemailer": "9.1.0",
+    "postgres": "3.4.9",
+    "qrcode": "1.5.4",
+    "tsx": "4.23.13",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "1.4.10",
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/node": "24.10.1",
+    "@types/nodemailer": "7.0.4",
+    "@types/qrcode": "1.5.5",
+    "@types/supertest": "7.2.1",
+    "drizzle-kit": "0.31.10",
+    "supertest": "7.2.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

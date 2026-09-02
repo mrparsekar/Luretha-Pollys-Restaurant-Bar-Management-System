@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# local embedded Postgres data
+.data/
+
+# env files - never commit real credentials. The example is the blank template
+# that documents every variable, so it stays tracked.
+.env
+.env.*
+!.env.example
+
+# build output
+dist/
+coverage/
+
+# logs & editor noise
+*.log
+npm-debug.log*
+.DS_Store
+tsconfig.tsbuildinfo
