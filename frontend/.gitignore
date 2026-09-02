@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# env files - never commit real credentials. The example is the blank template
+# that documents every variable, so it stays tracked.
+.env
+.env.*
+!.env.example
+
+# build output
+dist/
+dist-ssr/
+
+# logs & editor noise
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+tsconfig.tsbuildinfo
+.vite/
+.vscode/
+.idea/

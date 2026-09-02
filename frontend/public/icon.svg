@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Luretha and Pollys">
+  <rect width="192" height="192" rx="42" fill="#0f172a" />
+  <mask id="sun">
+    <circle cx="96" cy="84" r="50" fill="#fff" />
+  </mask>
+  <g mask="url(#sun)">
+    <circle cx="96" cy="84" r="50" fill="#f5b942" />
+    <rect x="40" y="90" width="112" height="5" fill="#0f172a" />
+    <rect x="40" y="102" width="112" height="5" fill="#0f172a" />
+  </g>
+</svg>
