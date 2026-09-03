@@ -8,6 +8,15 @@ import { getSettings } from './services/settings'
 async function main(): Promise<void> {
   // Fail loudly at boot rather than on the first waiter's tap.
   await db.execute(sql`select 1`)
+  if (env.databaseUrl) {
+    const database = new URL(env.databaseUrl)
+    const databaseName = database.pathname.replace(/^\//, '') || 'postgres'
+    console.log(
+      `[api] PostgreSQL connected: ${database.hostname}:${database.port || '5432'}/${databaseName}`,
+    )
+  } else {
+    console.log('[api] embedded PGlite connected: ./.data/pg')
+  }
   const settings = await getSettings()
 
   const app = createApp()

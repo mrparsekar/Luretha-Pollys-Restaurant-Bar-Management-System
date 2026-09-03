@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.8",
+    "@supabase/ssr": "^0.12.5",
+    "@supabase/supabase-js": "^2.115.0",
     "cookie-parser": "1.4.7",
     "cors": "2.8.6",
     "drizzle-orm": "0.45.2",
