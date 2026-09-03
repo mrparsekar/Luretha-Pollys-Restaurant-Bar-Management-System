@@ -2,6 +2,7 @@
   "name": "luretha-pollys-backend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "REST API for Luretha & Pollys Bar & Restaurant - orders, billing, reports",
   "main": "src/index.ts",
   "scripts": {
