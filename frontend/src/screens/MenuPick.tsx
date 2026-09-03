@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { ItemSheet, type Draft } from '../components/ItemSheet'
-import { Badge, Button, Empty, ErrorNote, Input, Money, Sheet, Spinner } from '../components/ui'
+import { Badge, Button, Empty, ErrorNote, Input, Money, Sheet, Spinner, Stepper } from '../components/ui'
 import { api, type NewLine } from '../lib/api'
 import { plural, rupees } from '../lib/format'
 import { useAction, useAsync, useStoredState } from '../lib/hooks'
@@ -39,8 +39,19 @@ export default function MenuPick(): ReactNode {
   const order = detail.data?.order
   const nextRound = (detail.data?.items.reduce((max, item) => Math.max(max, item.roundNo), 0) ?? 0) + 1
 
-  const submit = async () => {
-    const lines: NewLine[] = draft.map((line) => ({
+  /**
+   * Qty is editable right up to the moment the round goes in - "make that two"
+   * arrives after the round is built far more often than before it.
+   */
+  const changeQty = (key: string, qty: number) => {
+    setDraft(draft.map((line) => (line.key === key ? { ...line, qty } : line)))
+  }
+
+  const removeLine = (key: string) => {
+    setDraft(draft.filter((line) => line.key !== key))
+  }
+
+  const submit = async () => {    const lines: NewLine[] = draft.map((line) => ({
       menuItemId: line.menuItemId,
       variantId: line.variantId,
       qty: line.qty,
@@ -143,32 +154,55 @@ export default function MenuPick(): ReactNode {
       />
 
       <Sheet open={reviewing} onClose={() => setReviewing(false)} title={`Round ${nextRound}`}>
+        <p className="mb-2 text-xs text-slate-500">
+          Check the round before it goes in. Use − and + to change how many, or Remove to take a line
+          off.
+        </p>
         <ul className="mb-4 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
           {draft.map((line) => (
-            <li key={line.key} className="flex items-start gap-3 p-3">
-              <span className="tnum w-8 shrink-0 font-bold">{line.qty}×</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">
-                  {line.name}
-                  {line.variantLabel ? (
-                    <span className="font-normal text-slate-500"> · {line.variantLabel}</span>
+            <li key={line.key} className="p-3">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">
+                    {line.name}
+                    {line.variantLabel ? (
+                      <span className="font-normal text-slate-500"> · {line.variantLabel}</span>
+                    ) : null}
+                  </p>
+                  <p className="tnum text-xs text-slate-500">
+                    {rupees(line.unitPricePaise)} each
+                    {line.askedPrice ? ' · price keyed in' : ''}
+                  </p>
+                  {line.note ? (
+                    <p className="text-xs italic text-slate-600">{line.note}</p>
                   ) : null}
-                </p>
-                {line.note ? <p className="text-xs text-slate-500">{line.note}</p> : null}
-                {line.askedPrice ? (
-                  <p className="text-xs text-slate-500">Price keyed in: {rupees(line.unitPricePaise)}</p>
-                ) : null}
+                </div>
+                <Money paise={line.qty * line.unitPricePaise} strong className="shrink-0 text-sm" />
               </div>
-              <Money paise={line.qty * line.unitPricePaise} className="shrink-0 text-sm" />
-              <button
-                onClick={() => setDraft(draft.filter((other) => other.key !== line.key))}
-                className="min-h-11 shrink-0 px-2 text-sm font-semibold text-nonveg"
-              >
-                Remove
-              </button>
+              <div className="mt-2 flex items-center justify-between">
+                <Stepper
+                  value={line.qty}
+                  onChange={(next) => changeQty(line.key, next)}
+                  min={1}
+                  max={99}
+                  label={`${line.name} quantity`}
+                />
+                <button
+                  onClick={() => removeLine(line.key)}
+                  className="min-h-11 px-2 text-sm font-semibold text-nonveg"
+                >
+                  Remove
+                </button>
+              </div>
             </li>
           ))}
         </ul>
+
+        {draft.length === 0 ? (
+          <p className="mb-4 rounded-xl border border-slate-200 bg-white p-4 text-center text-sm text-slate-500">
+            The round is empty. Tap “Keep adding” to put something on it.
+          </p>
+        ) : null}
 
         {action.error ? (
           <div className="mb-3">

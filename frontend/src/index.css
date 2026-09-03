@@ -149,6 +149,22 @@
   html[data-print='a4'] .receipt-only {
     display: none !important;
   }
+
+  /*
+   * The price sign-off sheet is ~420 lines. Two columns on A4 keeps it to a few
+   * pages the owner will actually carry around the restaurant, and a section
+   * heading never ends up alone at the foot of a column.
+   */
+  html[data-print='a4'] .price-sheet {
+    columns: 2;
+    column-gap: 8mm;
+    font-size: 8.5pt;
+  }
+
+  .price-sheet h2 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
 }
 
 /*

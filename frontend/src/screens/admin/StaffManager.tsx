@@ -298,6 +298,3 @@ function AddSheet({ onClose, onDone }: { onClose: () => void; onDone: () => void
     </Sheet>
   )
 }
-    </Sheet>
-  )
-}
