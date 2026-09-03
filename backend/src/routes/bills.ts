@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { buildBill } from '../lib/bill'
-import { asyncHandler, intParam, parseBody, strParam } from '../lib/http'
-import { actor, requireAuth } from '../middleware/auth'
+import { buildBill } from '../lib/bill.js'
+import { asyncHandler, intParam, parseBody, strParam } from '../lib/http.js'
+import { actor, requireAuth } from '../middleware/auth.js'
 import {
   deliverBill,
   emailChannel,
@@ -11,9 +11,9 @@ import {
   publicBill,
   upiQrFor,
   whatsappChannel,
-} from '../services/delivery'
-import { assertAccess, findOrder, getOrderByToken } from '../services/orders'
-import { getSettings } from '../services/settings'
+} from '../services/delivery.js'
+import { assertAccess, findOrder, getOrderByToken } from '../services/orders.js'
+import { getSettings } from '../services/settings.js'
 
 export const billRouter = Router()
 

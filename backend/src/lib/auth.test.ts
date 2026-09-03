@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { hashSecret, isValidPin, verifySecret } from './password'
+import { hashSecret, isValidPin, verifySecret } from './password.js'
 import {
   clearCookieOptions,
   createSessionToken,
@@ -8,7 +8,7 @@ import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_MS,
   sessionCookieOptions,
-} from './session'
+} from './session.js'
 
 describe('PIN and password hashing', () => {
   it('verifies the secret it hashed', async () => {

@@ -1,9 +1,9 @@
 import { migrate } from 'drizzle-orm/pglite/migrator'
 
-import { db, isEmbedded } from '../db'
-import { categories, itemVariants, menuItems, staff, diningTables } from '../db/schema'
-import { hashSecret } from '../lib/password'
-import type { SessionPayload } from '../lib/session'
+import { db, isEmbedded } from '../db/index.js'
+import { categories, itemVariants, menuItems, staff, diningTables } from '../db/schema.js'
+import { hashSecret } from '../lib/password.js'
+import type { SessionPayload } from '../lib/session.js'
 
 /**
  * A tiny stand-in menu. The real 359-item seed is not needed to prove the ordering

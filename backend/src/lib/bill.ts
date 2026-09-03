@@ -1,11 +1,11 @@
 import QRCode from 'qrcode'
 
-import type { Settings } from '../db/schema'
-import { env } from '../env'
-import type { OrderDetail } from '../services/orders'
-import { computeTotals, formatPaise, formatRupees, isLiquorGroup } from './money'
-import { formatPhone } from './phone'
-import { dateStringLabel, istTimeLabel } from './time'
+import type { Settings } from '../db/schema.js'
+import { env } from '../env.js'
+import type { OrderDetail } from '../services/orders.js'
+import { computeTotals, formatPaise, formatRupees, isLiquorGroup } from './money.js'
+import { formatPhone } from './phone.js'
+import { dateStringLabel, istTimeLabel } from './time.js'
 
 export type BillLine = {
   id: number

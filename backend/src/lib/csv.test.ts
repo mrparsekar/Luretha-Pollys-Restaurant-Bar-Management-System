@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { csvCell, csvRupees, toCsv } from './csv'
+import { csvCell, csvRupees, toCsv } from './csv.js'
 
 describe('csvCell', () => {
   it('renders plain values as-is', () => {

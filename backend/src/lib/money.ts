@@ -1,4 +1,4 @@
-import type { MenuGroup } from '../db/schema'
+import type { MenuGroup } from '../db/schema.js'
 
 /**
  * All money in this codebase is integer paise. Nothing is a float, and the only

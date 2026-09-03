@@ -1,11 +1,11 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { listAuditLog } from '../lib/audit'
-import { csvRupees, toCsv } from '../lib/csv'
-import { asyncHandler, parseQuery } from '../lib/http'
-import { dateStringLabel } from '../lib/time'
-import { requireAuth, requireOwner } from '../middleware/auth'
+import { listAuditLog } from '../lib/audit.js'
+import { csvRupees, toCsv } from '../lib/csv.js'
+import { asyncHandler, parseQuery } from '../lib/http.js'
+import { dateStringLabel } from '../lib/time.js'
+import { requireAuth, requireOwner } from '../middleware/auth.js'
 import {
   categoryWise,
   dailyBreakdown,
@@ -15,7 +15,7 @@ import {
   resolveRange,
   settledOrders,
   waiterWise,
-} from '../services/reports'
+} from '../services/reports.js'
 
 export const reportRouter = Router()
 

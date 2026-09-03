@@ -1,9 +1,9 @@
 import { and, asc, eq, inArray } from 'drizzle-orm'
 
-import { db } from '../db'
-import { diningTables, orders, staff, type DiningTable } from '../db/schema'
-import { ApiError } from '../lib/http'
-import { listRunningOrders, type OrderSummary } from './orders'
+import { db } from '../db/index.js'
+import { diningTables, orders, staff, type DiningTable } from '../db/schema.js'
+import { ApiError } from '../lib/http.js'
+import { listRunningOrders, type OrderSummary } from './orders.js'
 
 export type FloorTable = {
   id: number

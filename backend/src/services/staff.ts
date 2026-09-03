@@ -1,12 +1,12 @@
 import { and, asc, eq, ne, sql } from 'drizzle-orm'
 
-import { db } from '../db'
-import { orders, staff, type Staff } from '../db/schema'
-import { recordAudit } from '../lib/audit'
-import { ApiError } from '../lib/http'
-import { hashSecret, isValidPin } from '../lib/password'
-import type { SessionPayload, SessionRole } from '../lib/session'
-import { forgetStaff } from '../middleware/auth'
+import { db } from '../db/index.js'
+import { orders, staff, type Staff } from '../db/schema.js'
+import { recordAudit } from '../lib/audit.js'
+import { ApiError } from '../lib/http.js'
+import { hashSecret, isValidPin } from '../lib/password.js'
+import type { SessionPayload, SessionRole } from '../lib/session.js'
+import { forgetStaff } from '../middleware/auth.js'
 
 export type StaffView = {
   id: number

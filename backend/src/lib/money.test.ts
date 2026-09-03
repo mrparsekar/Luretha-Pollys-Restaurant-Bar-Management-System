@@ -11,7 +11,7 @@ import {
   type DiscountInput,
   type LineLike,
   type TaxConfig,
-} from './money'
+} from './money.js'
 
 const NO_TAX: TaxConfig = {
   taxEnabled: false,

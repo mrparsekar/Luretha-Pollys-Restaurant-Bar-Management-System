@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 
 import type { CookieOptions } from 'express'
 
-import { env } from '../env'
+import { env } from '../env.js'
 
 export const SESSION_COOKIE = 'lp_session'
 

@@ -1,10 +1,10 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { asyncHandler, parseBody } from '../lib/http'
-import { mailStatus } from '../lib/mail'
-import { actor, isOwner, requireAuth, requireOwner } from '../middleware/auth'
-import { getSettings, updateSettings } from '../services/settings'
+import { asyncHandler, parseBody } from '../lib/http.js'
+import { mailStatus } from '../lib/mail.js'
+import { actor, isOwner, requireAuth, requireOwner } from '../middleware/auth.js'
+import { getSettings, updateSettings } from '../services/settings.js'
 
 export const settingsRouter = Router()
 

@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { asyncHandler, intParam, parseBody } from '../lib/http'
-import { MAX_ITEM_PRICE_PAISE } from '../lib/money'
-import { actor, requireAuth, requireOwner } from '../middleware/auth'
+import { asyncHandler, intParam, parseBody } from '../lib/http.js'
+import { MAX_ITEM_PRICE_PAISE } from '../lib/money.js'
+import { actor, requireAuth, requireOwner } from '../middleware/auth.js'
 import {
   addVariant,
   createCategory,
@@ -17,7 +17,7 @@ import {
   updateCategory,
   updateItem,
   updateVariant,
-} from '../services/menu'
+} from '../services/menu.js'
 
 export const menuRouter = Router()
 

@@ -1,9 +1,9 @@
 import { sql } from 'drizzle-orm'
 
-import { createApp } from './app'
-import { db, isEmbedded } from './db'
-import { env } from './env'
-import { getSettings } from './services/settings'
+import { createApp } from './app.js'
+import { db, isEmbedded } from './db/index.js'
+import { env } from './env.js'
+import { getSettings } from './services/settings.js'
 
 async function main(): Promise<void> {
   // Fail loudly at boot rather than on the first waiter's tap.

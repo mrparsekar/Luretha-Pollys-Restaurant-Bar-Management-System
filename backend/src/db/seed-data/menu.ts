@@ -1,4 +1,4 @@
-import type { menuGroup } from '../schema'
+import type { menuGroup } from '../schema.js'
 
 /**
  * The printed menu, transcribed from the 13 photographs in ./Menu.

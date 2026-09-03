@@ -1,11 +1,11 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { buildBill } from '../lib/bill'
-import { ApiError, asyncHandler, intParam, parseBody, parseQuery } from '../lib/http'
-import { MAX_ITEM_PRICE_PAISE } from '../lib/money'
-import { isDateString } from '../lib/time'
-import { actor, requireAuth, requireOwner } from '../middleware/auth'
+import { buildBill } from '../lib/bill.js'
+import { ApiError, asyncHandler, intParam, parseBody, parseQuery } from '../lib/http.js'
+import { MAX_ITEM_PRICE_PAISE } from '../lib/money.js'
+import { isDateString } from '../lib/time.js'
+import { actor, requireAuth, requireOwner } from '../middleware/auth.js'
 import {
   addItems,
   assertAccess,
@@ -23,8 +23,8 @@ import {
   updateGuest,
   voidItem,
   voidOrder,
-} from '../services/orders'
-import { getSettings } from '../services/settings'
+} from '../services/orders.js'
+import { getSettings } from '../services/settings.js'
 
 export const orderRouter = Router()
 

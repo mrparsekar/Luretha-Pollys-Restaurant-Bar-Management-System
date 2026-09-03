@@ -1,17 +1,17 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { env } from '../env'
-import { ApiError, asyncHandler, parseBody } from '../lib/http'
-import { hit, reset } from '../lib/rate-limit'
+import { env } from '../env.js'
+import { ApiError, asyncHandler, parseBody } from '../lib/http.js'
+import { hit, reset } from '../lib/rate-limit.js'
 import {
   SESSION_COOKIE,
   clearCookieOptions,
   createSessionToken,
   sessionCookieOptions,
-} from '../lib/session'
-import { actor, requireAuth } from '../middleware/auth'
-import { listLoginStaff, loginOwner, loginWithPin } from '../services/auth'
+} from '../lib/session.js'
+import { actor, requireAuth } from '../middleware/auth.js'
+import { listLoginStaff, loginOwner, loginWithPin } from '../services/auth.js'
 
 export const authRouter = Router()
 

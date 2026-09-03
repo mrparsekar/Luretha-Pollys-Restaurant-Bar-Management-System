@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 
-import { db } from '../db'
+import { db } from '../db/index.js'
 import {
   categories,
   dailyCounters,
@@ -15,13 +15,13 @@ import {
   type MenuGroup,
   type Order,
   type Settings,
-} from '../db/schema'
-import { recordAudit } from '../lib/audit'
-import { ApiError } from '../lib/http'
-import { computeTotals, MAX_ITEM_PRICE_PAISE } from '../lib/money'
-import type { SessionPayload } from '../lib/session'
-import { businessDate, formatClock, isWithinWindow } from '../lib/time'
-import { getSettings, taxConfigOf } from './settings'
+} from '../db/schema.js'
+import { recordAudit } from '../lib/audit.js'
+import { ApiError } from '../lib/http.js'
+import { computeTotals, MAX_ITEM_PRICE_PAISE } from '../lib/money.js'
+import type { SessionPayload } from '../lib/session.js'
+import { businessDate, formatClock, isWithinWindow } from '../lib/time.js'
+import { getSettings, taxConfigOf } from './settings.js'
 
 export type NewItemInput = {
   menuItemId: number

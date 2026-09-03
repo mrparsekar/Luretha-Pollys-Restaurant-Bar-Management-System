@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm'
 
-import { db } from '../db'
-import { billDeliveries, orders } from '../db/schema'
+import { db } from '../db/index.js'
+import { billDeliveries, orders } from '../db/schema.js'
 import {
   billHtml,
   billSubject,
@@ -10,12 +10,12 @@ import {
   whatsappLink,
   whatsappText,
   type BillView,
-} from '../lib/bill'
-import { ApiError } from '../lib/http'
-import { sendMail } from '../lib/mail'
-import { parseEmail, parsePhone } from '../lib/phone'
-import { getOrderDetail, type OrderDetail } from '../services/orders'
-import { getSettings } from './settings'
+} from '../lib/bill.js'
+import { ApiError } from '../lib/http.js'
+import { sendMail } from '../lib/mail.js'
+import { parseEmail, parsePhone } from '../lib/phone.js'
+import { getOrderDetail, type OrderDetail } from '../services/orders.js'
+import { getSettings } from './settings.js'
 
 export type DeliveryOutcome = {
   channel: 'whatsapp' | 'email'

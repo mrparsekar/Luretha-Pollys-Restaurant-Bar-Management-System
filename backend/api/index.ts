@@ -1,4 +1,4 @@
-import { createApp } from '../src/app'
+import { createApp } from '../src/app.js'
 
 // Vercel invokes the Express app as a serverless function for /api/* requests.
 // Local development continues to use src/index.ts and app.listen().

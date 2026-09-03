@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { asyncHandler, intParam, parseBody } from '../lib/http'
-import { requireAuth, requireOwner } from '../middleware/auth'
-import { createTable, getFloor, listTables, listWaiters, updateTable } from '../services/tables'
+import { asyncHandler, intParam, parseBody } from '../lib/http.js'
+import { requireAuth, requireOwner } from '../middleware/auth.js'
+import { createTable, getFloor, listTables, listWaiters, updateTable } from '../services/tables.js'
 
 export const tableRouter = Router()
 

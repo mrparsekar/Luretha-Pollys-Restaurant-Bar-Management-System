@@ -1,4 +1,4 @@
-import type { tableSection } from '../schema'
+import type { tableSection } from '../schema.js'
 
 type Section = (typeof tableSection)['enumValues'][number]
 

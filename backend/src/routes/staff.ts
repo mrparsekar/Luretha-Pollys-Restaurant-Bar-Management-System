@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
 
-import { asyncHandler, intParam, parseBody } from '../lib/http'
-import { actor, requireAuth, requireOwner } from '../middleware/auth'
+import { asyncHandler, intParam, parseBody } from '../lib/http.js'
+import { actor, requireAuth, requireOwner } from '../middleware/auth.js'
 import {
   createStaff,
   listStaff,
@@ -10,7 +10,7 @@ import {
   setPin,
   unlockStaff,
   updateStaff,
-} from '../services/staff'
+} from '../services/staff.js'
 
 export const staffRouter = Router()
 

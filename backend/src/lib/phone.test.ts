@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatPhone, parseEmail, parsePhone } from './phone'
+import { formatPhone, parseEmail, parsePhone } from './phone.js'
 
 describe('parsePhone', () => {
   it('accepts a bare 10-digit number and assumes +91', () => {

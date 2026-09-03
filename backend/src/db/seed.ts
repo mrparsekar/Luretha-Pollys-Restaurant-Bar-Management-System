@@ -1,12 +1,12 @@
 import { count } from 'drizzle-orm'
 
-import { env } from '../env'
-import { hashSecret } from '../lib/password'
-import { getSettings } from '../services/settings'
-import { closeDb, db, isEmbedded } from './index'
-import { categories, diningTables, itemVariants, menuItems, staff } from './schema'
-import { SEED_MENU } from './seed-data/menu'
-import { SEED_TABLES } from './seed-data/tables'
+import { env } from '../env.js'
+import { hashSecret } from '../lib/password.js'
+import { getSettings } from '../services/settings.js'
+import { closeDb, db, isEmbedded } from './index.js'
+import { categories, diningTables, itemVariants, menuItems, staff } from './schema.js'
+import { SEED_MENU } from './seed-data/menu.js'
+import { SEED_TABLES } from './seed-data/tables.js'
 
 /**
  * Idempotent. Safe to run against a database that is already in service:

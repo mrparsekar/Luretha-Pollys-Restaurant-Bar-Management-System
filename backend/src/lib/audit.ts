@@ -1,7 +1,7 @@
 import { desc, eq, sql } from 'drizzle-orm'
 
-import { db } from '../db'
-import { auditLog, staff } from '../db/schema'
+import { db } from '../db/index.js'
+import { auditLog, staff } from '../db/schema.js'
 
 export type AuditEntry = {
   actorId: number | null

@@ -1,10 +1,10 @@
 import { and, asc, desc, eq, gte, lte, ne, sql } from 'drizzle-orm'
 
-import { db } from '../db'
-import { orderItems, orders, staff } from '../db/schema'
-import { ApiError } from '../lib/http'
-import { businessDate, isDateString } from '../lib/time'
-import { getSettings } from './settings'
+import { db } from '../db/index.js'
+import { orderItems, orders, staff } from '../db/schema.js'
+import { ApiError } from '../lib/http.js'
+import { businessDate, isDateString } from '../lib/time.js'
+import { getSettings } from './settings.js'
 
 /**
  * Only settled orders count as sales. Open tabs are reported separately so the

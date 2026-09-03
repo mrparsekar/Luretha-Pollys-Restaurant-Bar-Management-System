@@ -1,7 +1,7 @@
 import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator'
 import { migrate as migratePostgres } from 'drizzle-orm/postgres-js/migrator'
 
-import { closeDb, db, isEmbedded } from './index'
+import { closeDb, db, isEmbedded } from './index.js'
 
 const MIGRATIONS_FOLDER = './db/migrations'
 

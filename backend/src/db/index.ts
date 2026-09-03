@@ -6,8 +6,8 @@ import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 
-import { env } from '../env'
-import * as schema from './schema'
+import { env } from '../env.js'
+import * as schema from './schema.js'
 
 /**
  * One schema, two drivers:

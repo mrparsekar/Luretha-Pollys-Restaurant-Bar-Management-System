@@ -1,6 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer'
 
-import { env, mailEnabled } from '../env'
+import { env, mailEnabled } from '../env.js'
 
 let transporter: Transporter | null = null
 

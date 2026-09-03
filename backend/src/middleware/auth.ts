@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm'
 import type { NextFunction, Request, Response } from 'express'
 
-import { db } from '../db'
-import { staff } from '../db/schema'
-import { ApiError } from '../lib/http'
-import { SESSION_COOKIE, readSessionToken, type SessionPayload, type SessionRole } from '../lib/session'
+import { db } from '../db/index.js'
+import { staff } from '../db/schema.js'
+import { ApiError } from '../lib/http.js'
+import { SESSION_COOKIE, readSessionToken, type SessionPayload, type SessionRole } from '../lib/session.js'
 
 declare global {
   namespace Express {

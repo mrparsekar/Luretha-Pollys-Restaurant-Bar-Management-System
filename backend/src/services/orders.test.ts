@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { db } from '../db'
-import { menuItems, orders, settings } from '../db/schema'
-import { buildBill, whatsappText } from '../lib/bill'
-import { businessDate } from '../lib/time'
+import { db } from '../db/index.js'
+import { menuItems, orders, settings } from '../db/schema.js'
+import { buildBill, whatsappText } from '../lib/bill.js'
+import { businessDate } from '../lib/time.js'
 import {
   caught,
   DISH_PAISE,
@@ -12,8 +12,8 @@ import {
   setupTestDb,
   SMALL_POUR_PAISE,
   type Fixtures,
-} from '../test/fixtures'
-import { getSettings, SETTINGS_ID, updateSettings } from './settings'
+} from '../test/fixtures.js'
+import { getSettings, SETTINGS_ID, updateSettings } from './settings.js'
 import {
   addItems,
   getOrderDetail,
@@ -23,7 +23,7 @@ import {
   settleOrder,
   voidItem,
   type NewItemInput,
-} from './orders'
+} from './orders.js'
 
 let f: Fixtures
 

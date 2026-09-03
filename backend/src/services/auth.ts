@@ -1,12 +1,12 @@
 import { and, asc, eq, isNotNull } from 'drizzle-orm'
 
-import { db } from '../db'
-import { staff, type Staff } from '../db/schema'
-import { recordAudit } from '../lib/audit'
-import { ApiError } from '../lib/http'
-import { dummyVerify, verifySecret } from '../lib/password'
-import type { SessionPayload, SessionRole } from '../lib/session'
-import { forgetStaff } from '../middleware/auth'
+import { db } from '../db/index.js'
+import { staff, type Staff } from '../db/schema.js'
+import { recordAudit } from '../lib/audit.js'
+import { ApiError } from '../lib/http.js'
+import { dummyVerify, verifySecret } from '../lib/password.js'
+import type { SessionPayload, SessionRole } from '../lib/session.js'
+import { forgetStaff } from '../middleware/auth.js'
 
 /** Five wrong tries then a five minute cool-off. Enough to stop guessing a 4-digit PIN. */
 export const MAX_ATTEMPTS = 5

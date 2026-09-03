@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm'
 
-import { db } from '../db'
-import { settings, type Settings } from '../db/schema'
-import { recordAudit } from '../lib/audit'
-import type { TaxConfig } from '../lib/money'
-import type { SessionPayload } from '../lib/session'
+import { db } from '../db/index.js'
+import { settings, type Settings } from '../db/schema.js'
+import { recordAudit } from '../lib/audit.js'
+import type { TaxConfig } from '../lib/money.js'
+import type { SessionPayload } from '../lib/session.js'
 
 export const SETTINGS_ID = 1
 

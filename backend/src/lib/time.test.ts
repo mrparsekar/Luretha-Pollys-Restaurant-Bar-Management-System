@@ -12,7 +12,7 @@ import {
   istTimeString,
   isWithinWindow,
   IST_OFFSET_MINUTES,
-} from './time'
+} from './time.js'
 
 /**
  * Every case here is written as an explicit UTC instant, which is the whole point:

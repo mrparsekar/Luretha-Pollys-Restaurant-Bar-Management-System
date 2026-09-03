@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from 'drizzle-orm'
 
-import { db } from '../db'
+import { db } from '../db/index.js'
 import {
   categories,
   itemVariants,
@@ -9,12 +9,12 @@ import {
   type ItemVariant,
   type MenuGroup,
   type MenuItem,
-} from '../db/schema'
-import { recordAudit } from '../lib/audit'
-import { ApiError } from '../lib/http'
-import { MAX_ITEM_PRICE_PAISE } from '../lib/money'
-import type { SessionPayload } from '../lib/session'
-import { formatClock, isWithinWindow } from '../lib/time'
+} from '../db/schema.js'
+import { recordAudit } from '../lib/audit.js'
+import { ApiError } from '../lib/http.js'
+import { MAX_ITEM_PRICE_PAISE } from '../lib/money.js'
+import type { SessionPayload } from '../lib/session.js'
+import { formatClock, isWithinWindow } from '../lib/time.js'
 
 export type MenuVariantView = {
   id: number
