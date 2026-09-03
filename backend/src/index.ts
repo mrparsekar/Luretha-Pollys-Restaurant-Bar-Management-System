@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 
-import { createApp } from './app.js'
+import { app } from './app.js'
 import { db, isEmbedded } from './db/index.js'
 import { env } from './env.js'
 import { getSettings } from './services/settings.js'
@@ -19,7 +19,6 @@ async function main(): Promise<void> {
   }
   const settings = await getSettings()
 
-  const app = createApp()
   const server = app.listen({ port: env.port, exclusive: true }, () => {
     console.log(`[api] ${settings.restaurantName}`)
     console.log(`[api] listening on http://localhost:${env.port}  (${env.nodeEnv})`)

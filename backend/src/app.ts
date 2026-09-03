@@ -68,3 +68,7 @@ export function createApp(): Express {
   app.use(errorHandler)
   return app
 }
+
+// Vercel may auto-detect this module as the Express function entry.
+export const app = createApp()
+export default app
