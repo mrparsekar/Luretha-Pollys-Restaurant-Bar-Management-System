@@ -19,7 +19,9 @@ import type {
   VerificationSection,
 } from './types'
 
-const BASE = import.meta.env.VITE_API_BASE || '/api'
+// Keep local calls on the Vite proxy and use the deployed API origin in Vercel.
+// Normalizing the value prevents accidental `/api//auth/...` URLs.
+const BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/+$/, '')
 
 /**
  * The API answers every failure as { error: { code, message } } where `message`
