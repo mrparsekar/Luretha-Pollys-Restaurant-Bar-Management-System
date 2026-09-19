@@ -26,7 +26,7 @@ billRouter.get(
   asyncHandler(async (req, res) => {
     const token = strParam(req.params.token)
     const [detail, config] = await Promise.all([getOrderByToken(token), getSettings()])
-    res.json({ bill: publicBill(buildBill(detail, config)) })
+    res.json({ bill: publicBill(await buildBill(detail, config)) })
   }),
 )
 

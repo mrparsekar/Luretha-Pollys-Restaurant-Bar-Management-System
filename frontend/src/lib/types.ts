@@ -216,6 +216,7 @@ export type BillView = {
   upi: { id: string; payeeName: string; payUrl: string } | null
   footer: string | null
   reviewUrl: string | null
+  reviewQrDataUrl: string | null
 }
 
 export type OrderDetail = {
@@ -224,26 +225,6 @@ export type OrderDetail = {
   tableLabel: string | null
   waiterName: string
   bill: BillView
-}
-
-export type KitchenLine = {
-  id: number
-  name: string
-  variant: string | null
-  qty: number
-  note: string | null
-  group: MenuGroup
-}
-
-export type KitchenTicket = {
-  orderId: number
-  orderNo: number
-  roundNo: number
-  orderType: OrderType
-  tableLabel: string | null
-  waiterName: string
-  placedAt: string
-  lines: KitchenLine[]
 }
 
 export type StaffMember = {

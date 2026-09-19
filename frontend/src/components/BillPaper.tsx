@@ -83,19 +83,21 @@ export function BillPaper({
           <tr className="text-left text-slate-500">
             <th className="w-6 py-1 font-normal">#</th>
             <th className="py-1 font-normal">Item</th>
+            <th className="w-10 py-1 text-right font-normal">Qty</th>
             <th className="w-14 py-1 text-right font-normal">Rate</th>
             <th className="w-16 py-1 text-right font-normal">Amount</th>
           </tr>
         </thead>
         <tbody>
-          {bill.lines.map((line) => (
+          {bill.lines.map((line, index) => (
             <tr key={line.id} className="align-top">
-              <td className="tnum py-1">{line.qty}</td>
+              <td className="tnum py-1">{index + 1}</td>
               <td className="py-1">
                 {line.name}
                 {line.variant ? <span className="text-slate-500"> ({line.variant})</span> : null}
                 {line.note ? <span className="block text-slate-500">{line.note}</span> : null}
               </td>
+              <td className="tnum py-1 text-right">{line.qty}</td>
               <td className="tnum py-1 text-right">{formatPaise(line.unitPricePaise)}</td>
               <td className="tnum py-1 text-right">{formatPaise(line.amountPaise)}</td>
             </tr>
@@ -117,7 +119,7 @@ export function BillPaper({
         ))}
       </dl>
 
-      {order.paymentMode ? (
+      {/* {order.paymentMode ? (
         <p className="text-center text-xs font-semibold uppercase tracking-wide">
           Paid by {order.paymentMode === 'upi' ? 'UPI' : 'Cash'}
         </p>
@@ -125,7 +127,7 @@ export function BillPaper({
         <p className="text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
           Not settled yet
         </p>
-      )}
+      )} */}
 
       {qrDataUrl && !order.paymentMode ? (
         <div className="keep-together mt-3 text-center">
@@ -137,7 +139,12 @@ export function BillPaper({
 
       <footer className="mt-3 border-t border-dashed border-slate-400 pt-3 text-center text-xs">
         {bill.footer ? <p>{bill.footer}</p> : null}
-        {bill.reviewUrl ? <p className="a4-only text-slate-500">{bill.reviewUrl}</p> : null}
+        {bill.reviewQrDataUrl ? (
+          <div className="keep-together mt-2">
+            <img src={bill.reviewQrDataUrl} alt="Scan to leave a review" className="mx-auto size-24" />
+            <p className="mt-1 text-slate-500">Scan to leave us a review</p>
+          </div>
+        ) : null}
         {bill.voided.length > 0 ? (
           <p className="a4-only mt-2 text-slate-400">
             {bill.voided.length} voided {bill.voided.length === 1 ? 'line' : 'lines'} not charged

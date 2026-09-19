@@ -24,9 +24,9 @@ const STATUS_TONE: Record<OrderStatus, 'amber' | 'blue' | 'green' | 'red'> = {
 }
 
 /**
- * The owner's side of one order: void a line, discount it, move it to another
- * table, then take the money. Each of these is owner-only in the API as well -
- * this screen is the convenient way in, not the gate.
+ * The money side of one order: void a line, discount it, move it to another
+ * table, then take the money. A waiter may only do this on their own order;
+ * the owner on any - the API enforces that, this screen is just the way in.
  */
 export default function OrderAdmin(): ReactNode {
   const { id } = useParams()

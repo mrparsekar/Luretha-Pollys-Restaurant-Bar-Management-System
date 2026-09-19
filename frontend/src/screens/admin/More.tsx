@@ -19,7 +19,6 @@ const LINKS = [
   { to: '/admin/settings', label: 'Settings', hint: 'Bill details, tax' },
   { to: '/admin/verify', label: 'Price sheet', hint: 'Check against the card' },
   { to: '/orders', label: 'All orders', hint: 'Today and before' },
-  { to: '/kitchen', label: 'Kitchen', hint: 'What is cooking' },
 ] as const
 
 /** Only the actions worth reviewing get a friendly name; the rest read as-is. */

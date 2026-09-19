@@ -8,7 +8,6 @@ import NewOrder from './screens/NewOrder'
 import Orders from './screens/Orders'
 import Tab from './screens/Tab'
 import MenuPick from './screens/MenuPick'
-import Kitchen from './screens/Kitchen'
 import Kot from './screens/Kot'
 import StaffBill from './screens/StaffBill'
 import PublicBill from './screens/PublicBill'
@@ -110,15 +109,6 @@ export default function App(): ReactNode {
         }
       />
       <Route
-        path="/kitchen"
-        element={
-          <RequireAuth>
-            <Kitchen />
-          </RequireAuth>
-        }
-      />
-
-      <Route
         path="/admin"
         element={
           <RequireAuth owner>
@@ -129,7 +119,7 @@ export default function App(): ReactNode {
       <Route
         path="/admin/orders/:id"
         element={
-          <RequireAuth owner>
+          <RequireAuth>
             <OrderAdmin />
           </RequireAuth>
         }

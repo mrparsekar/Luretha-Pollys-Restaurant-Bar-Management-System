@@ -5,7 +5,6 @@ import type {
   DeliveryRow,
   DiningTable,
   FloorTable,
-  KitchenTicket,
   LoginStaff,
   MailStatus,
   MenuCategory,
@@ -163,8 +162,6 @@ export const api = {
       const suffix = params.toString()
       return get<{ orders: OrderSummary[] }>(`/orders${suffix ? `?${suffix}` : ''}`)
     },
-    kitchen: (group?: 'bar' | 'kitchen', options?: Options) =>
-      get<{ tickets: KitchenTicket[] }>(`/orders/kitchen${group ? `?group=${group}` : ''}`, options),
     detail: (id: number, options?: Options) => get<OrderDetail>(`/orders/${id}`, options),
     open: (body: {
       orderType?: 'dine_in' | 'takeaway'
@@ -176,8 +173,6 @@ export const api = {
       post<{ order: OrderSummary; roundNo: number }>(`/orders/${id}/items`, { items }),
     voidItem: (id: number, itemId: number, reason: string) =>
       post<{ order: OrderSummary }>(`/orders/${id}/items/${itemId}/void`, { reason }),
-    serveItem: (id: number, itemId: number) =>
-      post<{ ok: true }>(`/orders/${id}/items/${itemId}/served`),
     updateGuest: (
       id: number,
       body: {

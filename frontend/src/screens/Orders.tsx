@@ -8,7 +8,6 @@ import { api } from '../lib/api'
 import { plural, since, timeLabel, todayInGoa } from '../lib/format'
 import { useAsync } from '../lib/hooks'
 import type { OrderStatus } from '../lib/types'
-import { useAuth } from '../state/auth'
 
 const FILTERS: { key: string; label: string; statuses: string }[] = [
   { key: 'running', label: 'Running', statuses: 'open,billed' },
@@ -28,7 +27,6 @@ const TONE: Record<OrderStatus, 'amber' | 'blue' | 'green' | 'red'> = {
  * session - which is what makes this safe to leave open on a shared phone.
  */
 export default function Orders(): ReactNode {
-  const { isOwner } = useAuth()
   const [filter, setFilter] = useState(FILTERS[0]?.key ?? 'running')
   const chosen = FILTERS.find((entry) => entry.key === filter) ?? FILTERS[0]
   const date = todayInGoa()
@@ -65,7 +63,7 @@ export default function Orders(): ReactNode {
         {orders.map((order) => (
           <li key={order.id}>
             <Link
-              to={isOwner ? `/admin/orders/${order.id}` : `/order/${order.id}`}
+              to={`/admin/orders/${order.id}`}
               className="flex items-center gap-3 p-3 active:bg-slate-50"
             >
               <span className="tnum w-10 shrink-0 text-base font-bold">#{order.orderNo}</span>

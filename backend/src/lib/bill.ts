@@ -56,6 +56,7 @@ export type BillView = {
   upi: { id: string; payeeName: string; payUrl: string } | null
   footer: string | null
   reviewUrl: string | null
+  reviewQrDataUrl: string | null
 }
 
 export function billUrlFor(token: string | null): string | null {
@@ -83,11 +84,15 @@ export function upiPayUrl(
   return `upi://pay?${params.toString()}`
 }
 
-export async function upiQrDataUrl(payUrl: string): Promise<string> {
-  return QRCode.toDataURL(payUrl, { margin: 1, width: 320, errorCorrectionLevel: 'M' })
+function qrDataUrl(text: string): Promise<string> {
+  return QRCode.toDataURL(text, { margin: 1, width: 320, errorCorrectionLevel: 'M' })
 }
 
-export function buildBill(detail: OrderDetail, config: Settings): BillView {
+export function upiQrDataUrl(payUrl: string): Promise<string> {
+  return qrDataUrl(payUrl)
+}
+
+export async function buildBill(detail: OrderDetail, config: Settings): Promise<BillView> {
   const { order } = detail
 
   const toLine = (item: OrderDetail['items'][number]): BillLine => ({
@@ -165,6 +170,7 @@ export function buildBill(detail: OrderDetail, config: Settings): BillView {
 
   const reference = `Bill ${order.orderNo} ${dateStringLabel(order.businessDate)}`
   const payUrl = upiPayUrl(config, order.totalPaise, reference)
+  const reviewQrDataUrl = config.reviewUrl ? await qrDataUrl(config.reviewUrl) : null
 
   return {
     restaurant: {
@@ -201,6 +207,7 @@ export function buildBill(detail: OrderDetail, config: Settings): BillView {
     upi: payUrl && config.upiId ? { id: config.upiId, payeeName: config.upiPayeeName ?? config.restaurantName, payUrl } : null,
     footer: config.billFooter,
     reviewUrl: config.reviewUrl,
+    reviewQrDataUrl,
   }
 }
 

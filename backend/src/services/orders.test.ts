@@ -543,7 +543,7 @@ describe('the bill a guest actually gets', () => {
 
     const detail = await getOrderDetail(order.id)
     const config = await getSettings()
-    const bill = buildBill(detail, config)
+    const bill = await buildBill(detail, config)
 
     expect(bill.restaurant.name).toBe('Luretha & Pollys Bar & Restaurant')
     expect(bill.order.tableLabel).toBe('Test 2')
@@ -582,7 +582,7 @@ describe('the bill a guest actually gets', () => {
   it('shows a takeaway as takeaway, and offers no UPI link without a UPI id', async () => {
     const order = await withItems(dish(1))
     await settleOrder(order.id, { paymentMode: 'cash' }, f.owner)
-    const bill = buildBill(await getOrderDetail(order.id), await getSettings())
+    const bill = await buildBill(await getOrderDetail(order.id), await getSettings())
 
     expect(bill.order.tableLabel).toBeNull()
     expect(bill.upi).toBeNull()
@@ -594,7 +594,7 @@ describe('the bill a guest actually gets', () => {
     await updateSettings({ taxEnabled: true, foodTaxBps: 500, liquorTaxBps: 2_000 })
     const order = await withItems(dish(1), peg(1))
     await settleOrder(order.id, { paymentMode: 'cash' }, f.owner)
-    const bill = buildBill(await getOrderDetail(order.id), await getSettings())
+    const bill = await buildBill(await getOrderDetail(order.id), await getSettings())
     expect(bill.rows.map((r) => r.label)).toEqual(['Subtotal', 'GST 5%', 'VAT 20%', 'Total'])
     expect(bill.totalPaise).toBe(DISH_PAISE + LARGE_POUR_PAISE + 3_500)
   })

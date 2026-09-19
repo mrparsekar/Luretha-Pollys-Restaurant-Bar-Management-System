@@ -7,17 +7,15 @@ import { Badge, Button, Card, ErrorNote, Field, Input, Spinner } from '../compon
 import { api } from '../lib/api'
 import { timeLabel } from '../lib/format'
 import { useAction, useAsync } from '../lib/hooks'
-import { useAuth } from '../state/auth'
 
 /**
- * The staff bill: print it, send it, and - for the owner - settle it. WhatsApp is
- * a tap-to-send deep link, so the phone that opens it must have WhatsApp; the
- * message and the hosted bill link are built by the API.
+ * The staff bill: print it, send it, and settle it. WhatsApp is a tap-to-send
+ * deep link, so the phone that opens it must have WhatsApp; the message and
+ * the hosted bill link are built by the API.
  */
 export default function StaffBill(): ReactNode {
   const { id } = useParams()
   const orderId = Number(id)
-  const { isOwner } = useAuth()
 
   const state = useAsync((signal) => api.orders.detail(orderId, { signal }), [orderId])
   const deliveries = useAsync((signal) => api.bills.deliveries(orderId, { signal }), [orderId])
@@ -175,7 +173,7 @@ export default function StaffBill(): ReactNode {
               </div>
             </Card>
 
-            {isOwner && order.status !== 'settled' ? (
+            {order.status !== 'settled' ? (
               <Link
                 to={`/admin/orders/${orderId}`}
                 className="no-print flex min-h-14 items-center justify-center rounded-xl bg-sand text-sm font-bold text-ink active:bg-sand-deep"

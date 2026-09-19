@@ -63,7 +63,7 @@ export function useAsync<T>(
 /**
  * Same as useAsync but re-runs on a timer, and pauses while the tab is hidden so
  * a phone in a pocket is not polling the API all evening. Used by the floor
- * board, the owner's live board and the kitchen screen.
+ * board and the owner's live board.
  */
 export function usePoll<T>(
   run: (signal: AbortSignal) => Promise<T>,

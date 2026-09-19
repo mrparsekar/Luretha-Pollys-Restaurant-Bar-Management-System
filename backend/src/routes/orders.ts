@@ -5,19 +5,17 @@ import { buildBill } from '../lib/bill.js'
 import { ApiError, asyncHandler, intParam, parseBody, parseQuery } from '../lib/http.js'
 import { MAX_ITEM_PRICE_PAISE } from '../lib/money.js'
 import { isDateString } from '../lib/time.js'
-import { actor, requireAuth, requireOwner } from '../middleware/auth.js'
+import { actor, requireAuth } from '../middleware/auth.js'
 import {
   addItems,
   assertAccess,
   changeTable,
   findOrder,
   getOrderDetail,
-  listKitchenTickets,
   listOrders,
   listRunningOrders,
   markBilled,
   openOrder,
-  serveItem,
   setDiscount,
   settleOrder,
   updateGuest,
@@ -76,14 +74,6 @@ orderRouter.get(
   }),
 )
 
-orderRouter.get(
-  '/kitchen',
-  asyncHandler(async (req, res) => {
-    const group = req.query.group === 'bar' ? 'bar' : req.query.group === 'kitchen' ? 'kitchen' : undefined
-    res.json({ tickets: await listKitchenTickets(group) })
-  }),
-)
-
 const openBody = z.object({
   orderType: z.enum(['dine_in', 'takeaway']).default('dine_in'),
   diningTableId: z.number().int().positive().nullish(),
@@ -114,7 +104,7 @@ orderRouter.get(
       items: detail.items,
       tableLabel: detail.tableLabel,
       waiterName: detail.waiterName,
-      bill: buildBill(detail, config),
+      bill: await buildBill(detail, config),
     })
   }),
 )
@@ -159,14 +149,6 @@ orderRouter.post(
   }),
 )
 
-orderRouter.post(
-  '/:id/items/:itemId/served',
-  asyncHandler(async (req, res) => {
-    await serveItem(intParam(req.params.id), intParam(req.params.itemId, 'item'))
-    res.json({ ok: true })
-  }),
-)
-
 const guestBody = z.object({
   guestName: z.string().trim().max(80).nullish(),
   guestPhone: z.string().trim().max(20).nullish(),
@@ -185,7 +167,6 @@ orderRouter.patch(
 
 orderRouter.post(
   '/:id/discount',
-  requireOwner,
   asyncHandler(async (req, res) => {
     const body = parseBody(
       z.object({
@@ -204,7 +185,7 @@ orderRouter.post(
     const id = intParam(req.params.id)
     await markBilled(id, actor(req))
     const [detail, config] = await Promise.all([getOrderDetail(id), getSettings()])
-    res.json({ order: detail.order, bill: buildBill(detail, config) })
+    res.json({ order: detail.order, bill: await buildBill(detail, config) })
   }),
 )
 
@@ -217,19 +198,17 @@ const settleBody = z.object({
 
 orderRouter.post(
   '/:id/settle',
-  requireOwner,
   asyncHandler(async (req, res) => {
     const id = intParam(req.params.id)
     const body = parseBody(settleBody, req.body)
     await settleOrder(id, body, actor(req))
     const [detail, config] = await Promise.all([getOrderDetail(id), getSettings()])
-    res.json({ order: detail.order, bill: buildBill(detail, config) })
+    res.json({ order: detail.order, bill: await buildBill(detail, config) })
   }),
 )
 
 orderRouter.post(
   '/:id/void',
-  requireOwner,
   asyncHandler(async (req, res) => {
     const body = parseBody(reasonBody, req.body)
     res.json({ order: await voidOrder(intParam(req.params.id), body.reason, actor(req)) })
@@ -238,7 +217,6 @@ orderRouter.post(
 
 orderRouter.post(
   '/:id/table',
-  requireOwner,
   asyncHandler(async (req, res) => {
     const body = parseBody(z.object({ diningTableId: z.number().int().positive() }), req.body)
     res.json({ order: await changeTable(intParam(req.params.id), body.diningTableId, actor(req)) })

@@ -64,7 +64,7 @@ export const emailChannel: BillChannel = {
 
 async function billFor(orderId: number): Promise<{ detail: OrderDetail; bill: BillView }> {
   const [detail, config] = await Promise.all([getOrderDetail(orderId), getSettings()])
-  return { detail, bill: buildBill(detail, config) }
+  return { detail, bill: await buildBill(detail, config) }
 }
 
 export async function deliverBill(

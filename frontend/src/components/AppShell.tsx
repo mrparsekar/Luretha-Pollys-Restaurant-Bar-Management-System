@@ -11,13 +11,11 @@ type NavItem = { to: string; label: string; icon: string }
 const WAITER_NAV: NavItem[] = [
   { to: '/floor', label: 'Floor', icon: '▦' },
   { to: '/orders', label: 'Orders', icon: '☰' },
-  { to: '/kitchen', label: 'Kitchen', icon: '♨' },
 ]
 
 const OWNER_NAV: NavItem[] = [
   { to: '/admin', label: 'Board', icon: '◉' },
   { to: '/floor', label: 'Floor', icon: '▦' },
-  { to: '/kitchen', label: 'Kitchen', icon: '♨' },
   { to: '/admin/reports', label: 'Reports', icon: '▤' },
   { to: '/admin/more', label: 'More', icon: '⋯' },
 ]
@@ -93,7 +91,7 @@ export function AppShell({
   )
 }
 
-/** Screens that fill the viewport themselves (login, bill, kitchen wallboard). */
+/** Screens that fill the viewport themselves (login, bill). */
 export function Bare({ children }: { children: ReactNode }): ReactNode {
   return <div className="min-h-dvh bg-cream">{children}</div>
 }

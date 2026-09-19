@@ -11,7 +11,6 @@ import { api } from '../lib/api'
 import { plural, since, timeLabel } from '../lib/format'
 import { useAction, useAsync, useStoredState } from '../lib/hooks'
 import type { OrderStatus } from '../lib/types'
-import { useAuth } from '../state/auth'
 
 const STATUS_TONE: Record<OrderStatus, 'amber' | 'blue' | 'green' | 'red'> = {
   open: 'amber',
@@ -25,7 +24,6 @@ export default function Tab(): ReactNode {
   const { id } = useParams()
   const orderId = Number(id)
   const navigate = useNavigate()
-  const { isOwner } = useAuth()
 
   const state = useAsync((signal) => api.orders.detail(orderId, { signal }), [orderId])
   const action = useAction()
@@ -128,18 +126,12 @@ export default function Tab(): ReactNode {
               >
                 {order.status === 'billed' ? 'Open bill' : 'Print bill'}
               </Button>
-              {isOwner ? (
-                <Link
-                  to={`/admin/orders/${orderId}`}
-                  className="flex min-h-14 items-center justify-center rounded-xl bg-sand text-sm font-bold text-ink active:bg-sand-deep"
-                >
-                  Discount &amp; settle
-                </Link>
-              ) : (
-                <p className="text-center text-xs text-slate-500">
-                  The owner settles the bill and takes payment.
-                </p>
-              )}
+              <Link
+                to={`/admin/orders/${orderId}`}
+                className="flex min-h-14 items-center justify-center rounded-xl bg-sand text-sm font-bold text-ink active:bg-sand-deep"
+              >
+                Discount &amp; settle
+              </Link>
             </div>
           ) : (
             <Link

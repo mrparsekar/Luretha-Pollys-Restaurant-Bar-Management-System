@@ -411,29 +411,13 @@ export async function voidItem(
   return result.order
 }
 
-/** Kitchen/bar pass: whoever is standing there taps ready, on any order. */
-export async function serveItem(orderId: number, itemId: number): Promise<void> {
-  const updated = await db
-    .update(orderItems)
-    .set({ status: 'served', servedAt: new Date() })
-    .where(
-      and(
-        eq(orderItems.id, itemId),
-        eq(orderItems.orderId, orderId),
-        eq(orderItems.status, 'placed'),
-      ),
-    )
-    .returning({ id: orderItems.id })
-  if (!updated[0]) throw ApiError.notFound('That line is not waiting to be served.')
-}
-
 export type DiscountPatch = {
   discountType: 'none' | 'amount' | 'percent'
   /** Paise for 'amount', basis points for 'percent'. */
   discountValue: number
 }
 
-/** Owner only (enforced on the route). Always audited: this is money off the bill. */
+/** A waiter may discount their own order; the owner any. Always audited: this is money off the bill. */
 export async function setDiscount(
   orderId: number,
   patch: DiscountPatch,
@@ -453,6 +437,7 @@ export async function setDiscount(
 
   const result = await db.transaction(async (tx) => {
     const order = await loadOrder(tx, orderId, true)
+    assertAccess(order, session)
     assertMutable(order)
 
     const staged = (
@@ -548,6 +533,7 @@ export async function settleOrder(
 
   const result = await db.transaction(async (tx) => {
     const order = await loadOrder(tx, orderId, true)
+    assertAccess(order, session)
     assertMutable(order)
 
     if ((await liveLineCount(tx, order.id)) === 0) {
@@ -593,7 +579,7 @@ export async function settleOrder(
   return result
 }
 
-/** Owner only. Cancels the whole tab (walkout, duplicate order) with a reason. */
+/** A waiter may cancel their own tab; the owner any. Cancels the whole tab (walkout, duplicate order) with a reason. */
 export async function voidOrder(
   orderId: number,
   reason: string,
@@ -604,6 +590,7 @@ export async function voidOrder(
 
   const result = await db.transaction(async (tx) => {
     const order = await loadOrder(tx, orderId, true)
+    assertAccess(order, session)
     if (order.status === 'settled') throw ApiError.conflict('A settled order cannot be cancelled.')
     if (order.status === 'void') throw ApiError.conflict('This order is already cancelled.')
 
@@ -630,7 +617,7 @@ export async function voidOrder(
   return result.order
 }
 
-/** Owner only. Guests move tables; the tab follows them. */
+/** Guests move tables; the tab follows them. A waiter may move their own; the owner any. */
 export async function changeTable(
   orderId: number,
   diningTableId: number,
@@ -638,6 +625,7 @@ export async function changeTable(
 ): Promise<Order> {
   const result = await db.transaction(async (tx) => {
     const order = await loadOrder(tx, orderId, true)
+    assertAccess(order, session)
     assertMutable(order)
 
     const table = (
@@ -852,92 +840,6 @@ export async function listRunningOrders(waiterId?: number): Promise<OrderSummary
     const right = (b.lastItemAt ?? b.openedAt).getTime()
     return left - right
   })
-}
-
-export type KitchenLine = {
-  id: number
-  name: string
-  variant: string | null
-  qty: number
-  note: string | null
-  group: MenuGroup
-  createdAt: Date
-}
-
-export type KitchenTicket = {
-  orderId: number
-  orderNo: number
-  roundNo: number
-  orderType: Order['orderType']
-  tableLabel: string | null
-  waiterName: string
-  placedAt: Date
-  lines: KitchenLine[]
-}
-
-/**
- * One ticket per order round, oldest first - the same thing the paper slip used
- * to be. Only lines still waiting to be served appear.
- */
-export async function listKitchenTickets(group?: 'bar' | 'kitchen'): Promise<KitchenTicket[]> {
-  const rows = await db
-    .select({
-      lineId: orderItems.id,
-      name: orderItems.nameSnapshot,
-      variant: orderItems.variantSnapshot,
-      qty: orderItems.qty,
-      note: orderItems.note,
-      group: orderItems.groupSnapshot,
-      createdAt: orderItems.createdAt,
-      roundNo: orderItems.roundNo,
-      orderId: orders.id,
-      orderNo: orders.orderNo,
-      orderType: orders.orderType,
-      tableLabel: diningTables.label,
-      waiterName: staff.name,
-    })
-    .from(orderItems)
-    .innerJoin(orders, eq(orderItems.orderId, orders.id))
-    .innerJoin(staff, eq(orders.waiterId, staff.id))
-    .leftJoin(diningTables, eq(orders.diningTableId, diningTables.id))
-    .where(and(eq(orderItems.status, 'placed'), inArray(orders.status, ['open', 'billed'])))
-    .orderBy(asc(orderItems.createdAt), asc(orderItems.id))
-
-  const wanted = rows.filter((row) => {
-    if (group === 'bar') return row.group === 'bar'
-    if (group === 'kitchen') return row.group !== 'bar'
-    return true
-  })
-
-  const tickets = new Map<string, KitchenTicket>()
-  for (const row of wanted) {
-    const key = `${row.orderId}-${row.roundNo}`
-    let ticket = tickets.get(key)
-    if (!ticket) {
-      ticket = {
-        orderId: row.orderId,
-        orderNo: row.orderNo,
-        roundNo: row.roundNo,
-        orderType: row.orderType,
-        tableLabel: row.tableLabel,
-        waiterName: row.waiterName,
-        placedAt: row.createdAt,
-        lines: [],
-      }
-      tickets.set(key, ticket)
-    }
-    ticket.lines.push({
-      id: row.lineId,
-      name: row.name,
-      variant: row.variant,
-      qty: row.qty,
-      note: row.note,
-      group: row.group,
-      createdAt: row.createdAt,
-    })
-  }
-
-  return [...tickets.values()]
 }
 
 export async function findOrder(orderId: number): Promise<Order> {
