@@ -1,0 +1,1 @@
+ALTER TYPE "public"."table_section" ADD VALUE 'bar' BEFORE 'garden';

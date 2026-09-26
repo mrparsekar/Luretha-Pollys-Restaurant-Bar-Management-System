@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 
 import { db } from '../db/index.js'
 import {
@@ -713,6 +714,8 @@ export type OrderDetail = {
   tableLabel: string | null
   tableSection: string | null
   waiterName: string
+  /** Who actually settled/closed the bill, when that differs from the waiter who took it. */
+  settledByName: string | null
   items: Awaited<ReturnType<typeof loadItems>>
 }
 
@@ -724,6 +727,8 @@ function loadItems(orderId: number) {
     .orderBy(asc(orderItems.roundNo), asc(orderItems.id))
 }
 
+const settledByStaff = alias(staff, 'settled_by_staff')
+
 export async function getOrderDetail(orderId: number): Promise<OrderDetail> {
   const row = (
     await db
@@ -732,10 +737,12 @@ export async function getOrderDetail(orderId: number): Promise<OrderDetail> {
         tableLabel: diningTables.label,
         tableSection: diningTables.section,
         waiterName: staff.name,
+        settledByName: settledByStaff.name,
       })
       .from(orders)
       .leftJoin(diningTables, eq(orders.diningTableId, diningTables.id))
       .innerJoin(staff, eq(orders.waiterId, staff.id))
+      .leftJoin(settledByStaff, eq(orders.settledById, settledByStaff.id))
       .where(eq(orders.id, orderId))
       .limit(1)
   )[0]
@@ -746,6 +753,7 @@ export async function getOrderDetail(orderId: number): Promise<OrderDetail> {
     tableLabel: row.tableLabel,
     tableSection: row.tableSection,
     waiterName: row.waiterName,
+    settledByName: row.settledByName,
     items: await loadItems(orderId),
   }
 }

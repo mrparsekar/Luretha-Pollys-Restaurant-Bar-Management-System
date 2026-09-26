@@ -141,6 +141,8 @@ export const api = {
       patch<{ variant: unknown }>(`/menu/variants/${id}`, body),
     deleteVariant: (id: number) => del<{ ok: true }>(`/menu/variants/${id}`),
     categories: () => get<{ categories: unknown[] }>('/menu/categories'),
+    updateSectionOrder: (order: string[]) =>
+      post<{ menu: MenuCategory[] }>('/menu/section-order', { order }),
   },
 
   tables: {

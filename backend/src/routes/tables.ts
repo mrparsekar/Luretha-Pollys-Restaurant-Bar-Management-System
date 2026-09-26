@@ -35,7 +35,7 @@ tableRouter.get(
 
 const tableBody = z.object({
   label: z.string().trim().min(1).max(30),
-  section: z.enum(['indoor', 'garden', 'beach']).optional(),
+  section: z.enum(['indoor', 'bar', 'garden', 'beach']).optional(),
   seats: z.number().int().min(1).max(40).optional(),
   sort: z.number().int().min(0).max(9999).optional(),
 })

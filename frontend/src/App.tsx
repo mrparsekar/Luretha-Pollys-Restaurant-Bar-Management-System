@@ -15,6 +15,7 @@ import Board from './screens/admin/Board'
 import OrderAdmin from './screens/admin/OrderAdmin'
 import Reports from './screens/admin/Reports'
 import MenuManager from './screens/admin/MenuManager'
+import TablesManager from './screens/admin/TablesManager'
 import StaffManager from './screens/admin/StaffManager'
 import SettingsScreen from './screens/admin/SettingsScreen'
 import More from './screens/admin/More'
@@ -65,6 +66,14 @@ export default function App(): ReactNode {
         element={
           <RequireAuth>
             <NewOrder />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/new/menu"
+        element={
+          <RequireAuth>
+            <MenuPick />
           </RequireAuth>
         }
       />
@@ -137,6 +146,14 @@ export default function App(): ReactNode {
         element={
           <RequireAuth owner>
             <MenuManager />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/tables"
+        element={
+          <RequireAuth owner>
+            <TablesManager />
           </RequireAuth>
         }
       />

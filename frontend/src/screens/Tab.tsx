@@ -34,6 +34,7 @@ export default function Tab(): ReactNode {
   const order = detail?.order
   const mutable = order ? order.status === 'open' || order.status === 'billed' : false
   const unsent = draft.reduce((sum, line) => sum + line.qty, 0)
+  const hasServedItems = (detail?.items ?? []).some((item) => item.status !== 'void')
 
   const voidLine = async (itemId: number, reason: string) => {
     await action.run(() => api.orders.voidItem(orderId, itemId, reason))
@@ -106,6 +107,16 @@ export default function Tab(): ReactNode {
               <Button size="lg" block onClick={() => navigate(`/order/${orderId}/menu`)}>
                 Add items
               </Button>
+              {hasServedItems ? (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  block
+                  onClick={() => navigate(`/order/${orderId}/menu?repeat=1`)}
+                >
+                  Repeat last round
+                </Button>
+              ) : null}
               <div className="grid grid-cols-2 gap-3">
                 <Link
                   to={`/order/${orderId}/kot`}

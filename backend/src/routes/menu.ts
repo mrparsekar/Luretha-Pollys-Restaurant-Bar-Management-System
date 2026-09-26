@@ -16,6 +16,7 @@ import {
   reorderItems,
   updateCategory,
   updateItem,
+  updateSectionOrder,
   updateVariant,
 } from '../services/menu.js'
 
@@ -167,5 +168,19 @@ menuRouter.post(
     )
     await reorderItems(body.items)
     res.json({ ok: true })
+  }),
+)
+
+/** The owner's drag-to-reorder of the tab strip itself: real sections plus the two pinned tabs. */
+menuRouter.post(
+  '/section-order',
+  requireOwner,
+  asyncHandler(async (req, res) => {
+    const body = parseBody(
+      z.object({ order: z.array(z.string().trim().min(1).max(40)).max(200) }),
+      req.body,
+    )
+    await updateSectionOrder(body.order)
+    res.json({ menu: await getMenu() })
   }),
 )

@@ -4,13 +4,15 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { AppShell } from '../components/AppShell'
 import { Button, Card, ErrorNote, Field, Input, Spinner, Stepper } from '../components/ui'
-import { ApiError, api } from '../lib/api'
+import { api } from '../lib/api'
+import { plural } from '../lib/format'
 import { useAsync } from '../lib/hooks'
 import type { OrderType } from '../lib/types'
 
 /**
- * Opening a tab is two taps: a table, then Open. The daily order number is
- * assigned by the API at this moment, so it is the number on the KOT and the bill.
+ * Picking a table is just picking - nothing is created yet. The order itself
+ * only exists once the first round is actually sent from the menu screen, so a
+ * mis-tap here costs nothing to undo: just navigate away.
  */
 export default function NewOrder(): ReactNode {
   const [params] = useSearchParams()
@@ -26,31 +28,19 @@ export default function NewOrder(): ReactNode {
   })
   const [guests, setGuests] = useState(2)
   const [guestName, setGuestName] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [failure, setFailure] = useState<ApiError | null>(null)
 
   const tables = floor.data?.tables ?? []
-  const clash = failure?.details as { orderId?: number } | undefined
+  const selectedTable = tables.find((entry) => entry.id === tableId) ?? null
 
-  const open = async () => {
-    setBusy(true)
-    setFailure(null)
-    try {
-      const result = await api.orders.open({
-        orderType,
-        diningTableId: orderType === 'dine_in' ? tableId : null,
-        guests: orderType === 'dine_in' ? guests : 0,
-        guestName: guestName.trim() || null,
-      })
-      // Straight into the menu: the tab is empty and the guest is waiting.
-      navigate(`/order/${result.order.id}/menu`, { replace: true })
-    } catch (cause) {
-      setFailure(
-        cause instanceof ApiError ? cause : new ApiError(0, 'error', 'Could not open the order.'),
-      )
-    } finally {
-      setBusy(false)
+  const proceed = () => {
+    const next = new URLSearchParams({ type: orderType })
+    if (orderType === 'dine_in' && tableId) {
+      next.set('table', String(tableId))
+      next.set('guests', String(guests))
+      if (selectedTable) next.set('tableLabel', selectedTable.label)
     }
+    if (guestName.trim()) next.set('guestName', guestName.trim())
+    navigate(`/new/menu?${next.toString()}`)
   }
 
   return (
@@ -72,17 +62,6 @@ export default function NewOrder(): ReactNode {
             Takeaway
           </Button>
         </div>
-
-        {failure ? (
-          <div className="space-y-2">
-            <ErrorNote message={failure.message} />
-            {clash?.orderId ? (
-              <Button variant="secondary" block onClick={() => navigate(`/order/${clash.orderId}`)}>
-                Open that running tab
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
 
         {orderType === 'dine_in' ? (
           <Card>
@@ -110,7 +89,7 @@ export default function NewOrder(): ReactNode {
                   >
                     {table.label}
                     <span className="block text-[10px] font-normal">
-                      {taken ? `#${table.order?.orderNo}` : `${table.seats} seats`}
+                      {taken ? `#${table.order?.orderNo}` : plural(table.seats, 'seat')}
                     </span>
                   </button>
                 )
@@ -140,13 +119,8 @@ export default function NewOrder(): ReactNode {
           </Field>
         </Card>
 
-        <Button
-          size="lg"
-          block
-          disabled={busy || (orderType === 'dine_in' && !tableId)}
-          onClick={open}
-        >
-          {busy ? 'Opening…' : 'Open tab and add items'}
+        <Button size="lg" block disabled={orderType === 'dine_in' && !tableId} onClick={proceed}>
+          Choose items
         </Button>
       </div>
     </AppShell>

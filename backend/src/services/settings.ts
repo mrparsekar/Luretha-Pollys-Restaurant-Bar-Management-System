@@ -21,6 +21,7 @@ export const SETTINGS_DEFAULTS = {
   upiPayeeName: 'Luretha & Pollys',
   reviewUrl: null as string | null,
   billFooter: 'Thank you for dining with us. Please visit again!',
+  sectionOrder: null as string[] | null,
   taxEnabled: false,
   foodTaxBps: 0,
   liquorTaxBps: 0,

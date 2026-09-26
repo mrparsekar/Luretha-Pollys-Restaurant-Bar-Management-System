@@ -1,28 +1,50 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { ItemSheet, type Draft } from '../components/ItemSheet'
 import { Badge, Button, Empty, ErrorNote, Input, Money, Sheet, Spinner, Stepper } from '../components/ui'
-import { api, type NewLine } from '../lib/api'
+import { ApiError, api, type NewLine } from '../lib/api'
 import { plural, rupees } from '../lib/format'
 import { useAction, useAsync, useStoredState } from '../lib/hooks'
-import type { MenuCategory, MenuItem } from '../lib/types'
+import type { MenuCategory, MenuItem, OrderType } from '../lib/types'
 
 /**
  * The order pad. A round is built up locally - and kept in localStorage, so a
  * locked phone or a dropped connection does not lose it - then submitted as one
  * request, which is what makes it a numbered round the kitchen can work from.
+ *
+ * Two ways in: `/order/:id/menu` adds a round to an order that already exists,
+ * and `/new/menu` (no id, table/guest choices carried as query params) builds
+ * the very first round before the order exists at all - it is only opened once
+ * that round is actually sent, so a table picked by mistake never creates
+ * anything to clean up.
  */
 export default function MenuPick(): ReactNode {
   const { id } = useParams()
-  const orderId = Number(id)
+  const orderId = id ? Number(id) : null
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  const pendingOrderType: OrderType = searchParams.get('type') === 'takeaway' ? 'takeaway' : 'dine_in'
+  const pendingTableId = searchParams.get('table') ? Number(searchParams.get('table')) : null
+  const pendingTableLabel = searchParams.get('tableLabel')
+  const pendingGuests = searchParams.get('guests') ? Number(searchParams.get('guests')) : 0
+  const pendingGuestName = searchParams.get('guestName')
+  const repeatLastRound = searchParams.get('repeat') === '1'
 
   const menu = useAsync(() => api.menu.get(), [])
-  const detail = useAsync((signal) => api.orders.detail(orderId, { signal }), [orderId])
-  const [draft, setDraft] = useStoredState<Draft[]>(`lp.round.${orderId}`, [])
+  const detail = useAsync(
+    (signal) => (orderId ? api.orders.detail(orderId, { signal }) : Promise.resolve(null)),
+    [orderId],
+  )
+  const [draft, setDraft] = useStoredState<Draft[]>(
+    orderId ? `lp.round.${orderId}` : `lp.round.pending.${pendingTableId ?? 'takeaway'}`,
+    [],
+  )
   const action = useAction()
+  const [openError, setOpenError] = useState<ApiError | null>(null)
+  const [repeatNote, setRepeatNote] = useState<string | null>(null)
 
   const [query, setQuery] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
@@ -37,7 +59,9 @@ export default function MenuPick(): ReactNode {
   const count = draft.reduce((sum, line) => sum + line.qty, 0)
   const total = draft.reduce((sum, line) => sum + line.qty * line.unitPricePaise, 0)
   const order = detail.data?.order
-  const nextRound = (detail.data?.items.reduce((max, item) => Math.max(max, item.roundNo), 0) ?? 0) + 1
+  const nextRound = orderId
+    ? (detail.data?.items.reduce((max, item) => Math.max(max, item.roundNo), 0) ?? 0) + 1
+    : 1
 
   /**
    * Qty is editable right up to the moment the round goes in - "make that two"
@@ -51,7 +75,95 @@ export default function MenuPick(): ReactNode {
     setDraft(draft.filter((line) => line.key !== key))
   }
 
-  const submit = async () => {    const lines: NewLine[] = draft.map((line) => ({
+  // Pre-fills the review sheet from last round's items, priced fresh off the live
+  // menu, once both loads land - runs once, and never over a round already in progress.
+  const appliedRepeat = useRef(false)
+  useEffect(() => {
+    if (!repeatLastRound || orderId === null || appliedRepeat.current) return
+    if (!menu.data || !detail.data) return
+    appliedRepeat.current = true
+    if (draft.length > 0) return
+
+    const items = detail.data.items
+    const lastRound = items.reduce((max, item) => Math.max(max, item.roundNo), 0)
+    const itemById = new Map(categories.flatMap((category) => category.items.map((item) => [item.id, item])))
+
+    const built: Draft[] = []
+    let skipped = 0
+
+    for (const line of items) {
+      if (line.roundNo !== lastRound || line.status === 'void') continue
+      const live = line.menuItemId ? itemById.get(line.menuItemId) : undefined
+      if (!live || !live.available || !live.servingNow) {
+        skipped += 1
+        continue
+      }
+
+      let unitPricePaise = line.unitPricePaise
+      let askedPrice = false
+      let variantLabel: string | null = null
+      let variantId: number | null = null
+
+      if (live.priceMode === 'variant') {
+        const variant = live.variants.find((entry) => entry.id === line.variantId)
+        if (!variant || variant.pricePaise === null) {
+          skipped += 1
+          continue
+        }
+        variantId = variant.id
+        variantLabel = variant.label
+        unitPricePaise = variant.pricePaise
+      } else if (live.priceMode === 'ask') {
+        // No re-prompt in a repeat: keep what it went for last time.
+        askedPrice = true
+      } else if (live.basePricePaise !== null) {
+        unitPricePaise = live.basePricePaise
+      } else {
+        skipped += 1
+        continue
+      }
+
+      built.push({
+        key: `repeat-${line.id}`,
+        menuItemId: live.id,
+        variantId,
+        name: live.name,
+        variantLabel,
+        unitPricePaise,
+        askedPrice,
+        qty: line.qty,
+        note: line.note,
+      })
+    }
+
+    if (built.length > 0) {
+      setDraft(built)
+      setReviewing(true)
+    }
+    if (skipped > 0) {
+      setRepeatNote(`${plural(skipped, 'item')} from last round can't be added right now and ${skipped === 1 ? 'was' : 'were'} left out.`)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repeatLastRound, orderId, menu.data, detail.data])
+
+  const openPendingOrder = async (): Promise<{ id: number } | null> => {
+    setOpenError(null)
+    try {
+      const opened = await api.orders.open({
+        orderType: pendingOrderType,
+        diningTableId: pendingOrderType === 'dine_in' ? pendingTableId : null,
+        guests: pendingOrderType === 'dine_in' ? pendingGuests : 0,
+        guestName: pendingGuestName,
+      })
+      return opened.order
+    } catch (cause) {
+      setOpenError(cause instanceof ApiError ? cause : new ApiError(0, 'error', 'Could not open the order.'))
+      return null
+    }
+  }
+
+  const submit = async () => {
+    const lines: NewLine[] = draft.map((line) => ({
       menuItemId: line.menuItemId,
       variantId: line.variantId,
       qty: line.qty,
@@ -59,6 +171,19 @@ export default function MenuPick(): ReactNode {
       // Only ask-price lines carry a price; everything else is priced by the API.
       unitPricePaise: line.askedPrice ? line.unitPricePaise : null,
     }))
+
+    if (orderId === null) {
+      const opened = await openPendingOrder()
+      if (!opened) return
+      await action.run(() => api.orders.addItems(opened.id, lines))
+      setDraft([])
+      setReviewing(false)
+      // The order exists either way now - if adding the round itself failed,
+      // the tab screen shows it empty with "Add items" ready to retry.
+      navigate(`/order/${opened.id}`, { replace: true })
+      return
+    }
+
     const result = await action.run(() => api.orders.addItems(orderId, lines))
     if (!result) return
     setDraft([])
@@ -70,13 +195,29 @@ export default function MenuPick(): ReactNode {
     <div className="min-h-dvh bg-cream pb-24">
       <header className="safe-top sticky top-0 z-20 border-b border-ink-soft bg-ink text-cream">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-3 py-3">
-          <Link to={`/order/${orderId}`} className="min-h-11 px-1 text-lg" aria-label="Back to tab">
+          <Link
+            to={orderId ? `/order/${orderId}` : '/floor'}
+            className="min-h-11 px-1 text-lg"
+            aria-label="Back"
+          >
             ‹
           </Link>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold">
-              {order ? `#${order.orderNo}` : 'Order'}
-              {detail.data?.tableLabel ? ` · ${detail.data.tableLabel}` : ''}
+              {orderId
+                ? order
+                  ? `#${order.orderNo}`
+                  : 'Order'
+                : 'New order'}
+              {orderId
+                ? detail.data?.tableLabel
+                  ? ` · ${detail.data.tableLabel}`
+                  : ''
+                : pendingTableLabel
+                  ? ` · ${pendingTableLabel}`
+                  : pendingOrderType === 'takeaway'
+                    ? ' · Takeaway'
+                    : ''}
             </p>
             <p className="text-xs text-cream/70">Round {nextRound}</p>
           </div>
@@ -117,6 +258,27 @@ export default function MenuPick(): ReactNode {
         {menu.error ? <ErrorNote message={menu.error.message} onRetry={menu.reload} /> : null}
         {detail.error ? <ErrorNote message={detail.error.message} onRetry={detail.reload} /> : null}
         {action.error ? <ErrorNote message={action.error} /> : null}
+        {openError ? (
+          <div className="mb-3 space-y-2">
+            <ErrorNote message={openError.message} />
+            {(openError.details as { orderId?: number } | undefined)?.orderId ? (
+              <Button
+                variant="secondary"
+                block
+                onClick={() =>
+                  navigate(`/order/${(openError.details as { orderId: number }).orderId}`)
+                }
+              >
+                Open that running tab
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+        {repeatNote ? (
+          <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            {repeatNote}
+          </p>
+        ) : null}
 
         {menu.data && results.length === 0 ? (
           <Empty title="Nothing found" hint="Try a shorter word, or pick a section above." />

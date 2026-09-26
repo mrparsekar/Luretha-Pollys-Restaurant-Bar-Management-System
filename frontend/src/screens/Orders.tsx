@@ -23,8 +23,9 @@ const TONE: Record<OrderStatus, 'amber' | 'blue' | 'green' | 'red'> = {
 }
 
 /**
- * Today's tabs as a list. A waiter sees only their own - the API scopes it to the
- * session - which is what makes this safe to leave open on a shared phone.
+ * Today's tabs as a list. Any staff member can see every order here - waiters are
+ * no longer pinned to their own tabs - so a colleague's table can be checked or
+ * covered without asking the owner to look it up.
  */
 export default function Orders(): ReactNode {
   const [filter, setFilter] = useState(FILTERS[0]?.key ?? 'running')

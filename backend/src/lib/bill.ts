@@ -40,6 +40,8 @@ export type BillView = {
     orderType: string
     tableLabel: string | null
     waiterName: string
+    /** Who actually settled/closed the bill, only when different from the waiter who took it. */
+    billedByName: string | null
     guests: number
     guestName: string | null
     guestPhone: string | null
@@ -191,6 +193,10 @@ export async function buildBill(detail: OrderDetail, config: Settings): Promise<
       orderType: order.orderType,
       tableLabel: detail.tableLabel,
       waiterName: detail.waiterName,
+      billedByName:
+        detail.settledByName && detail.settledByName !== detail.waiterName
+          ? detail.settledByName
+          : null,
       guests: order.guests,
       guestName: order.guestName,
       guestPhone: order.guestPhone,
@@ -242,6 +248,7 @@ export function whatsappText(bill: BillView): string {
   if (bill.order.paymentMode) {
     out.push(`Paid by ${bill.order.paymentMode === 'upi' ? 'UPI' : 'Cash'}`)
   }
+  if (bill.order.billedByName) out.push(`Billed by ${bill.order.billedByName}`)
   if (bill.billUrl) out.push('', `Full bill: ${bill.billUrl}`)
   if (bill.footer) out.push('', bill.footer)
   if (bill.reviewUrl) out.push(`Review us: ${bill.reviewUrl}`)
@@ -302,6 +309,10 @@ export function billHtml(bill: BillView): string {
     ? `<p style="margin:12px 0 0;color:#065f46">Paid by ${bill.order.paymentMode === 'upi' ? 'UPI' : 'Cash'}</p>`
     : ''
 
+  const billedBy = bill.order.billedByName
+    ? `<p style="margin:2px 0 0;color:#6b7280;font-size:13px">Billed by ${escapeHtml(bill.order.billedByName)}</p>`
+    : ''
+
   const link = bill.billUrl
     ? `<p style="margin:16px 0 0"><a href="${bill.billUrl}" style="color:#b45309">View or print this bill</a></p>`
     : ''
@@ -330,7 +341,7 @@ export function billHtml(bill: BillView): string {
       <tbody>${rows}</tbody>
       <tfoot>${totals}</tfoot>
     </table>
-    ${paid}${link}${review}
+    ${paid}${billedBy}${link}${review}
     ${bill.footer ? `<p style="margin:20px 0 0;color:#6b7280;font-size:13px">${escapeHtml(bill.footer)}</p>` : ''}
   </div>
 </body></html>`

@@ -9,7 +9,7 @@
 export type Role = 'owner' | 'waiter'
 export type MenuGroup = 'breakfast' | 'food' | 'bar' | 'beverage' | 'dessert'
 export type PriceMode = 'fixed' | 'variant' | 'ask'
-export type Section = 'indoor' | 'garden' | 'beach'
+export type Section = 'indoor' | 'bar' | 'garden' | 'beach'
 export type OrderType = 'dine_in' | 'takeaway'
 export type OrderStatus = 'open' | 'billed' | 'settled' | 'void'
 export type OrderItemStatus = 'placed' | 'served' | 'void'
@@ -74,6 +74,8 @@ export type MenuCategory = {
   note: string | null
   sort: number
   items: MenuItem[]
+  /** True for the two auto-populated "most ordered" tabs, which are not real sections. */
+  pinned?: boolean
 }
 
 export type OrderSummary = {
@@ -200,6 +202,7 @@ export type BillView = {
     orderType: string
     tableLabel: string | null
     waiterName: string
+    billedByName: string | null
     guests: number
     guestName: string | null
     guestPhone: string | null

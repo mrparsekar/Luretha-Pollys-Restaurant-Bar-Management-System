@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { ReactNode } from 'react'
+import { useRef, useState } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 
 import { AppShell } from '../../components/AppShell'
 import { Badge, Button, ErrorNote, Field, Input, Sheet, Spinner } from '../../components/ui'
@@ -34,6 +34,7 @@ export default function MenuManager(): ReactNode {
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [editing, setEditing] = useState<MenuItem | null>(null)
   const [adding, setAdding] = useState(false)
+  const [reordering, setReordering] = useState(false)
 
   const menu = state.data?.menu ?? []
   const current = menu.find((entry) => entry.id === categoryId) ?? menu[0] ?? null
@@ -51,7 +52,18 @@ export default function MenuManager(): ReactNode {
     state.reload()
   }
   return (
-    <AppShell title="Menu" subtitle={`${plural(menu.length, 'section')} on the card`}>
+    <AppShell
+      title="Menu"
+      subtitle={`${plural(menu.length, 'section')} on the card`}
+      action={
+        <button
+          onClick={() => setReordering(true)}
+          className="min-h-11 rounded-xl bg-sand px-3 py-2 text-xs font-bold text-ink active:bg-sand-deep"
+        >
+          Reorder
+        </button>
+      }
+    >
       {state.loading && !state.data ? <Spinner label="Loading the menu" /> : null}
       {state.error ? <ErrorNote message={state.error.message} onRetry={state.reload} /> : null}
 
@@ -118,7 +130,147 @@ export default function MenuManager(): ReactNode {
 
       {editing ? <ItemEditor key={editing.id} item={editing} onClose={done} /> : null}
       {adding ? <AddItem categories={menu} onClose={done} /> : null}
+      {reordering ? (
+        <SectionOrder
+          menu={menu}
+          onClose={() => {
+            setReordering(false)
+            state.reload()
+          }}
+        />
+      ) : null}
     </AppShell>
+  )
+}
+
+/** "pinned:food"/"pinned:drinks" match the sentinel ids getMenu() uses on the backend. */
+function sectionToken(category: MenuCategory): string {
+  if (category.id === -1) return 'pinned:food'
+  if (category.id === -2) return 'pinned:drinks'
+  return `cat:${category.id}`
+}
+
+/**
+ * Drag-and-drop reordering of the whole tab strip - real sections and the two
+ * auto-populated "most ordered" tabs together. Built on the Pointer Events API
+ * (not native HTML5 drag-and-drop, which touch screens don't support) so it
+ * works the same with a finger or a mouse: drag the handle, the row you cross
+ * swaps in live. A pinned tab can be hidden without losing its spot in the
+ * list, so the owner can bring it back later.
+ */
+function SectionOrder({ menu, onClose }: { menu: MenuCategory[]; onClose: () => void }): ReactNode {
+  const [order, setOrder] = useState(menu)
+  const [hidden, setHidden] = useState<Set<number>>(new Set())
+  const [draggingId, setDraggingId] = useState<number | null>(null)
+  const action = useAction()
+
+  const rows = useRef<Map<number, HTMLLIElement>>(new Map())
+  const dragId = useRef<number | null>(null)
+
+  const toggleHidden = (id: number) => {
+    const next = new Set(hidden)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setHidden(next)
+  }
+
+  const startDrag = (event: ReactPointerEvent<HTMLButtonElement>, id: number) => {
+    event.currentTarget.setPointerCapture(event.pointerId)
+    dragId.current = id
+    setDraggingId(id)
+  }
+
+  const dragOver = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const draggedId = dragId.current
+    if (draggedId === null) return
+    const y = event.clientY
+    for (const [id, el] of rows.current) {
+      if (id === draggedId) continue
+      const rect = el.getBoundingClientRect()
+      if (y < rect.top || y > rect.bottom) continue
+      setOrder((prev) => {
+        const from = prev.findIndex((c) => c.id === draggedId)
+        const to = prev.findIndex((c) => c.id === id)
+        if (from === -1 || to === -1) return prev
+        const next = [...prev]
+        const [row] = next.splice(from, 1)
+        if (!row) return prev
+        next.splice(to, 0, row)
+        return next
+      })
+      break
+    }
+  }
+
+  const endDrag = () => {
+    dragId.current = null
+    setDraggingId(null)
+  }
+
+  const save = async () => {
+    const tokens = order.filter((category) => !hidden.has(category.id)).map(sectionToken)
+    if (await action.run(() => api.menu.updateSectionOrder(tokens))) onClose()
+  }
+
+  return (
+    <Sheet open onClose={onClose} title="Reorder sections">
+      <p className="mb-3 text-xs text-slate-500">
+        Drag whatever your staff reach for most to the top. The two “Most ordered”
+        tabs fill themselves in from what actually sells - hide them here if you
+        don’t want them shown.
+      </p>
+      {action.error ? (
+        <div className="mb-3">
+          <ErrorNote message={action.error} />
+        </div>
+      ) : null}
+      <ul className="mb-4 divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        {order.map((category) => (
+          <li
+            key={category.id}
+            ref={(el) => {
+              if (el) rows.current.set(category.id, el)
+              else rows.current.delete(category.id)
+            }}
+            className={`flex items-center gap-2 p-3 ${hidden.has(category.id) ? 'opacity-40' : ''} ${
+              draggingId === category.id ? 'bg-sand' : ''
+            }`}
+          >
+            <button
+              type="button"
+              onPointerDown={(event) => startDrag(event, category.id)}
+              onPointerMove={dragOver}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              aria-label={`Drag to reorder ${category.name}`}
+              className="touch-none select-none shrink-0 px-1 text-lg text-slate-400 active:cursor-grabbing"
+            >
+              ⠿
+            </button>
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+              {category.name}
+              {category.pinned ? (
+                <span className="ml-2 align-middle">
+                  <Badge tone="amber">Auto</Badge>
+                </span>
+              ) : null}
+            </span>
+            {category.pinned ? (
+              <button
+                onClick={() => toggleHidden(category.id)}
+                className="min-h-11 shrink-0 rounded-lg border border-slate-300 px-2 text-xs font-semibold"
+              >
+                {hidden.has(category.id) ? 'Show' : 'Hide'}
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+
+      <Button size="lg" block disabled={action.busy} onClick={save}>
+        {action.busy ? 'Saving…' : 'Save order'}
+      </Button>
+    </Sheet>
   )
 }
 

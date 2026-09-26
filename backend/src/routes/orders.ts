@@ -8,9 +8,7 @@ import { isDateString } from '../lib/time.js'
 import { actor, requireAuth } from '../middleware/auth.js'
 import {
   addItems,
-  assertAccess,
   changeTable,
-  findOrder,
   getOrderDetail,
   listOrders,
   listRunningOrders,
@@ -28,16 +26,10 @@ export const orderRouter = Router()
 
 orderRouter.use(requireAuth)
 
-/** Waiters are pinned to their own orders; only the owner may look wider. */
-function scopeWaiter(req: Parameters<typeof actor>[0]): number | undefined {
-  const session = actor(req)
-  return session.role === 'owner' ? undefined : session.sub
-}
-
 orderRouter.get(
   '/running',
-  asyncHandler(async (req, res) => {
-    res.json({ orders: await listRunningOrders(scopeWaiter(req)) })
+  asyncHandler(async (_req, res) => {
+    res.json({ orders: await listRunningOrders() })
   }),
 )
 
@@ -47,11 +39,11 @@ const listQuery = z.object({
   waiterId: z.coerce.number().int().positive().optional(),
 })
 
+/** Any staff member may browse any order; only mutations stay pinned to the owning waiter (see assertAccess). */
 orderRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     const query = parseQuery(listQuery, req.query)
-    const session = actor(req)
 
     const statuses = query.status
       ? query.status
@@ -68,7 +60,7 @@ orderRouter.get(
       orders: await listOrders({
         statuses,
         businessDate: query.date,
-        waiterId: session.role === 'owner' ? query.waiterId : session.sub,
+        waiterId: query.waiterId,
       }),
     })
   }),
@@ -90,13 +82,14 @@ orderRouter.post(
   }),
 )
 
-/** Detail carries the priced bill too, so print and settle need no second call. */
+/**
+ * Detail carries the priced bill too, so print and settle need no second call.
+ * Viewing is open to any staff member; assertAccess only gates the mutating routes below.
+ */
 orderRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
     const id = intParam(req.params.id)
-    const order = await findOrder(id)
-    assertAccess(order, actor(req))
 
     const [detail, config] = await Promise.all([getOrderDetail(id), getSettings()])
     res.json({

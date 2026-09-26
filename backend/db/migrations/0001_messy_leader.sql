@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "section_order" jsonb;

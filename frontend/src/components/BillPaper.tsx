@@ -64,6 +64,12 @@ export function BillPaper({
           <dt className="text-slate-500">Waiter</dt>
           <dd>{order.waiterName}</dd>
         </div>
+        {order.billedByName ? (
+          <div className="flex justify-end gap-1">
+            <dt className="text-slate-500">Billed by</dt>
+            <dd>{order.billedByName}</dd>
+          </div>
+        ) : null}
         {order.guests ? (
           <div className="flex justify-end gap-1">
             <dt className="text-slate-500">Guests</dt>

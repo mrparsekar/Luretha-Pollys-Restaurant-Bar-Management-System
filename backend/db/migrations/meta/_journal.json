@@ -8,6 +8,20 @@
       "when": 1788288673737,
       "tag": "0000_past_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790438353815,
+      "tag": "0001_messy_leader",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790440660222,
+      "tag": "0002_tricky_stardust",
+      "breakpoints": true
     }
   ]
 }

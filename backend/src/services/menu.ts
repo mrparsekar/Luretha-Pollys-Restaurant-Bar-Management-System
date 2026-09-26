@@ -1,10 +1,12 @@
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 
 import { db } from '../db/index.js'
 import {
   categories,
   itemVariants,
   menuItems,
+  orderItems,
+  orders,
   type Category,
   type ItemVariant,
   type MenuGroup,
@@ -15,6 +17,7 @@ import { ApiError } from '../lib/http.js'
 import { MAX_ITEM_PRICE_PAISE } from '../lib/money.js'
 import type { SessionPayload } from '../lib/session.js'
 import { formatClock, isWithinWindow } from '../lib/time.js'
+import { getSettings, updateSettings } from './settings.js'
 
 export type MenuVariantView = {
   id: number
@@ -49,6 +52,46 @@ export type MenuCategoryView = {
   note: string | null
   sort: number
   items: MenuItemView[]
+  /** True for the two auto-populated "most ordered" tabs, which are not real DB categories. */
+  pinned?: boolean
+}
+
+/** Sentinel ids for the two computed tabs: negative, so they never collide with a real category id. */
+export const PINNED_FOOD_CATEGORY_ID = -1
+export const PINNED_DRINKS_CATEGORY_ID = -2
+
+const FOOD_GROUPS: readonly MenuGroup[] = ['breakfast', 'food', 'dessert']
+const DRINK_GROUPS: readonly MenuGroup[] = ['bar', 'beverage']
+
+function sectionToken(category: MenuCategoryView): string {
+  if (category.id === PINNED_FOOD_CATEGORY_ID) return 'pinned:food'
+  if (category.id === PINNED_DRINKS_CATEGORY_ID) return 'pinned:drinks'
+  return `cat:${category.id}`
+}
+
+/**
+ * Applies the owner's saved tab order. `null` means the default: both pinned tabs
+ * (when they have items) first, then real categories in their own sort order - the
+ * order `sections` already arrives in. A saved order only shows a pinned tab when
+ * its token is present, so removing it from the list hides it; a real category that
+ * is missing from an old saved order (added since) is appended at the end.
+ */
+function applySectionOrder(sections: MenuCategoryView[], order: string[] | null): MenuCategoryView[] {
+  if (!order) return sections
+
+  const byToken = new Map(sections.map((section) => [sectionToken(section), section]))
+  const ordered: MenuCategoryView[] = []
+  for (const token of order) {
+    const section = byToken.get(token)
+    if (section) {
+      ordered.push(section)
+      byToken.delete(token)
+    }
+  }
+  for (const section of byToken.values()) {
+    if (!section.pinned) ordered.push(section)
+  }
+  return ordered
 }
 
 function windowLabel(item: MenuItem): string | null {
@@ -60,8 +103,7 @@ function windowLabel(item: MenuItem): string | null {
   return `Until ${to}`
 }
 
-/** The whole card in one request: the waiter phone caches it and searches locally. */
-export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]> {
+async function loadCategories(at: Date): Promise<MenuCategoryView[]> {
   const [categoryRows, itemRows, variantRows] = await Promise.all([
     db.select().from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.sort), asc(categories.name)),
     db.select().from(menuItems).orderBy(asc(menuItems.sort), asc(menuItems.name)),
@@ -113,6 +155,94 @@ export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]
     sort: category.sort,
     items: itemsByCategory.get(category.id) ?? [],
   }))
+}
+
+/**
+ * The ids of the items most ordered from bills that actually went through (billed
+ * or settled - an open or voided order says nothing about what sells), restricted
+ * to items still available on an active section so the tab is always orderable.
+ */
+async function popularItemIds(bucket: 'food' | 'drinks', limit = 12): Promise<number[]> {
+  const groups = bucket === 'food' ? FOOD_GROUPS : DRINK_GROUPS
+  const qty = sql<number>`sum(${orderItems.qty})`
+
+  const rows = await db
+    .select({ menuItemId: orderItems.menuItemId, qty })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .innerJoin(menuItems, eq(orderItems.menuItemId, menuItems.id))
+    .innerJoin(categories, eq(menuItems.categoryId, categories.id))
+    .where(
+      and(
+        inArray(orders.status, ['billed', 'settled']),
+        sql`${orderItems.status} <> 'void'`,
+        inArray(categories.group, groups),
+        eq(menuItems.available, true),
+        eq(categories.isActive, true),
+      ),
+    )
+    .groupBy(orderItems.menuItemId)
+    .orderBy(desc(qty))
+    .limit(limit)
+
+  return rows.map((row) => row.menuItemId).filter((id): id is number => id !== null)
+}
+
+/** The whole card in one request: the waiter phone caches it and searches locally. */
+export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]> {
+  const [base, config, foodIds, drinkIds] = await Promise.all([
+    loadCategories(at),
+    getSettings(),
+    popularItemIds('food'),
+    popularItemIds('drinks'),
+  ])
+
+  const itemById = new Map(base.flatMap((category) => category.items.map((item) => [item.id, item])))
+  const resolve = (ids: number[]): MenuItemView[] =>
+    ids.map((id) => itemById.get(id)).filter((item): item is MenuItemView => item !== undefined)
+
+  const pinned: MenuCategoryView[] = []
+  const foodItems = resolve(foodIds)
+  const drinkItems = resolve(drinkIds)
+  if (foodItems.length > 0) {
+    pinned.push({
+      id: PINNED_FOOD_CATEGORY_ID,
+      name: 'Most Ordered Food',
+      group: 'food',
+      note: null,
+      sort: -2,
+      pinned: true,
+      items: foodItems,
+    })
+  }
+  if (drinkItems.length > 0) {
+    pinned.push({
+      id: PINNED_DRINKS_CATEGORY_ID,
+      name: 'Most Ordered Drinks',
+      group: 'beverage',
+      note: null,
+      sort: -1,
+      pinned: true,
+      items: drinkItems,
+    })
+  }
+
+  return applySectionOrder([...pinned, ...base], config.sectionOrder)
+}
+
+/** Every live category id plus the two pinned keys, for validating a saved tab order. */
+async function knownSectionTokens(): Promise<Set<string>> {
+  const rows = await db.select({ id: categories.id }).from(categories)
+  return new Set(['pinned:food', 'pinned:drinks', ...rows.map((row) => `cat:${row.id}`)])
+}
+
+/** Owner's drag-to-reorder of the whole tab strip, pinned tabs included. */
+export async function updateSectionOrder(order: readonly string[]): Promise<void> {
+  const known = await knownSectionTokens()
+  const unknown = order.find((token) => !known.has(token))
+  if (unknown) throw ApiError.badRequest(`"${unknown}" is not a menu section.`)
+
+  await updateSettings({ sectionOrder: [...order] })
 }
 
 function assertPrice(value: number | null | undefined, what: string): void {

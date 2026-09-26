@@ -22,7 +22,7 @@ import {
 export const staffRole = pgEnum('staff_role', ['owner', 'waiter'])
 export const menuGroup = pgEnum('menu_group', ['breakfast', 'food', 'bar', 'beverage', 'dessert'])
 export const priceMode = pgEnum('price_mode', ['fixed', 'variant', 'ask'])
-export const tableSection = pgEnum('table_section', ['indoor', 'garden', 'beach'])
+export const tableSection = pgEnum('table_section', ['indoor', 'bar', 'garden', 'beach'])
 export const orderType = pgEnum('order_type', ['dine_in', 'takeaway'])
 export const orderStatus = pgEnum('order_status', ['open', 'billed', 'settled', 'void'])
 export const orderItemStatus = pgEnum('order_item_status', ['placed', 'served', 'void'])
@@ -44,6 +44,12 @@ export const settings = pgTable('settings', {
   upiPayeeName: text('upi_payee_name'),
   reviewUrl: text('review_url'),
   billFooter: text('bill_footer'),
+  /**
+   * Owner-chosen order of the menu's tabs: each entry is "cat:<categoryId>" or the
+   * fixed keys "pinned:food" / "pinned:drinks". Null means the default order (both
+   * pinned tabs first, then categories by their own sort).
+   */
+  sectionOrder: jsonb('section_order').$type<string[]>(),
   /** Tax is off until the client confirms their GST position. */
   taxEnabled: boolean('tax_enabled').notNull().default(false),
   /** Applied to breakfast/food/beverage/dessert lines, in basis points (500 = 5%). */

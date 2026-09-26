@@ -5,12 +5,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { Button, Empty, ErrorNote, Money, Spinner } from '../components/ui'
 import { api } from '../lib/api'
-import { rupeesShort, since } from '../lib/format'
+import { plural, rupeesShort, since } from '../lib/format'
 import { usePoll, useTicker } from '../lib/hooks'
 import type { FloorTable, Section } from '../lib/types'
 
 const SECTIONS: { key: Section; label: string }[] = [
   { key: 'indoor', label: 'Indoor' },
+  { key: 'bar', label: 'Bar' },
   { key: 'garden', label: 'Garden' },
   { key: 'beach', label: 'Beach' },
 ]
@@ -121,7 +122,7 @@ function TableTile({
         {order ? (
           <span className="tnum text-xs font-semibold text-slate-500">#{order.orderNo}</span>
         ) : (
-          <span className="text-xs text-slate-400">{table.seats} seats</span>
+          <span className="text-xs text-slate-400">{plural(table.seats, 'seat')}</span>
         )}
       </div>
 
