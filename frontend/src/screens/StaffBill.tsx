@@ -64,7 +64,7 @@ export default function StaffBill(): ReactNode {
   return (
     <div className="min-h-dvh bg-cream">
       <header className="safe-top no-print sticky top-0 z-20 border-b border-ink-soft bg-ink text-cream">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-3 py-3">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-3 py-3 lg:max-w-5xl lg:px-6">
           <Link to={`/order/${orderId}`} className="min-h-11 px-1 text-lg" aria-label="Back to tab">
             ‹
           </Link>
@@ -77,7 +77,7 @@ export default function StaffBill(): ReactNode {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-3 py-4">
+      <main className="mx-auto max-w-3xl px-3 py-4 lg:max-w-5xl lg:px-6">
         {state.loading && !detail ? <Spinner label="Loading bill" /> : null}
         {state.error ? <ErrorNote message={state.error.message} onRetry={state.reload} /> : null}
 
@@ -92,7 +92,7 @@ export default function StaffBill(): ReactNode {
                   variant={mode === 'receipt' ? 'primary' : 'secondary'}
                   onClick={() => setMode('receipt')}
                 >
-                  58mm roll
+                  80mm roll
                 </Button>
                 <Button
                   variant={mode === 'a4' ? 'primary' : 'secondary'}
