@@ -35,7 +35,8 @@ export function AppShell({
   const navigate = useNavigate()
   const items = isOwner ? OWNER_NAV : WAITER_NAV
 
-  const leave = async () => {
+  /** Hands the shared device to the next person: sign out here, PIN in there. */
+  const switchUser = async () => {
     await signOut()
     navigate('/login', { replace: true })
   }
@@ -43,7 +44,7 @@ export function AppShell({
   return (
     <div className="min-h-dvh bg-cream pb-20">
       <header className="safe-top no-print sticky top-0 z-20 border-b border-ink-soft bg-ink text-cream">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 lg:max-w-5xl lg:px-6">
           <div className="min-w-0">
             <p className="truncate text-sm font-bold">
               {title ?? settings?.restaurantName ?? 'Luretha & Pollys'}
@@ -55,19 +56,19 @@ export function AppShell({
           <div className="flex shrink-0 items-center gap-2">
             {action}
             <button
-              onClick={leave}
+              onClick={switchUser}
               className="min-h-11 rounded-xl px-3 text-xs font-semibold text-cream/80 active:bg-ink-soft"
             >
-              Sign out
+              Switch user
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-4">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 py-4 lg:max-w-5xl lg:px-6">{children}</main>
 
       <nav className="safe-bottom no-print fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl">
+        <div className="mx-auto flex max-w-3xl lg:max-w-5xl">
           {items.map((item) => (
             <NavLink
               key={item.to}

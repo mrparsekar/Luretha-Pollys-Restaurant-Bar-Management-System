@@ -5,7 +5,7 @@ import { formatPaise, rupees } from '../lib/format'
 import type { BillView } from '../lib/types'
 
 /**
- * Sets the print mode on <html> so the stylesheet can pick between the 58mm roll
+ * Sets the print mode on <html> so the stylesheet can pick between the 80mm roll
  * and an A4 sheet. The client prints on whatever they already own, and the choice
  * is theirs at the moment of printing.
  */

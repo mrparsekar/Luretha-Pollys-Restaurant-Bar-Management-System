@@ -77,7 +77,7 @@
 
 /* ---------------------------------------------------------------------------
  * Print. The client owns whatever printer they own, so both layouts ship: a
- * 58mm thermal roll and an A4 sheet. The bill screen sets data-print on <html>
+ * 80mm thermal roll and an A4 sheet. The bill screen sets data-print on <html>
  * and the same markup serves the guest bill and the kitchen ticket.
  * ------------------------------------------------------------------------- */
 
@@ -124,14 +124,14 @@
   }
 }
 
-/* 58mm roll: 48mm of printable width once the feed margins are taken off. */
+/* 80mm roll: 72mm of printable width once the feed margins are taken off. */
 @media print {
   html[data-print='receipt'] {
     font-size: 11px;
   }
 
   html[data-print='receipt'] .paper {
-    width: 48mm !important;
+    width: 72mm !important;
     font-family: var(--font-bill);
     line-height: 1.35;
   }
@@ -170,7 +170,7 @@
 /*
  * @page cannot be scoped by a selector, so the roll gets a named page instead.
  * Browsers without support for the `page` property fall back to the sheet
- * margins below, and the 48mm content width above still keeps the bill on the
+ * margins below, and the 72mm content width above still keeps the bill on the
  * roll - it just wastes the paper the driver thinks it has.
  */
 @page {
@@ -179,8 +179,8 @@
 }
 
 @page receipt {
-  size: 58mm auto;
-  margin: 2mm;
+  size: 80mm auto;
+  margin: 4mm;
 }
 
 html[data-print='receipt'] .paper {

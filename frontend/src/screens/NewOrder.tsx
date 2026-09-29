@@ -70,7 +70,7 @@ export default function NewOrder(): ReactNode {
             {floor.error ? (
               <ErrorNote message={floor.error.message} onRetry={floor.reload} />
             ) : null}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-6">
               {tables.map((table) => {
                 const taken = Boolean(table.order)
                 const chosen = tableId === table.id

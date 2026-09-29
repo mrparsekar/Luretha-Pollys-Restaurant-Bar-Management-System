@@ -194,7 +194,7 @@ export default function MenuPick(): ReactNode {
   return (
     <div className="min-h-dvh bg-cream pb-24">
       <header className="safe-top sticky top-0 z-20 border-b border-ink-soft bg-ink text-cream">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-3 py-3">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-3 py-3 lg:max-w-5xl lg:px-6">
           <Link
             to={orderId ? `/order/${orderId}` : '/floor'}
             className="min-h-11 px-1 text-lg"
@@ -222,7 +222,7 @@ export default function MenuPick(): ReactNode {
             <p className="text-xs text-cream/70">Round {nextRound}</p>
           </div>
         </div>
-        <div className="mx-auto max-w-3xl px-3 pb-3">
+        <div className="mx-auto max-w-3xl px-3 pb-3 lg:max-w-5xl lg:px-6">
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -253,7 +253,7 @@ export default function MenuPick(): ReactNode {
         </div>
       ) : null}
 
-      <main className="mx-auto max-w-3xl px-3 py-3">
+      <main className="mx-auto max-w-3xl px-3 py-3 lg:max-w-5xl lg:px-6">
         {menu.loading || detail.loading ? <Spinner label="Loading menu" /> : null}
         {menu.error ? <ErrorNote message={menu.error.message} onRetry={menu.reload} /> : null}
         {detail.error ? <ErrorNote message={detail.error.message} onRetry={detail.reload} /> : null}
@@ -284,7 +284,7 @@ export default function MenuPick(): ReactNode {
           <Empty title="Nothing found" hint="Try a shorter word, or pick a section above." />
         ) : null}
 
-        <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <ul className="grid divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white md:grid-cols-2 md:divide-y-0 md:gap-px md:bg-slate-200 md:[&>li]:bg-white">
           {results.map((item) => (
             <ItemRow key={item.id} item={item} onPick={() => setPicked(item)} showCategory={Boolean(query)} />
           ))}
@@ -293,7 +293,7 @@ export default function MenuPick(): ReactNode {
 
       {count > 0 ? (
         <div className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white p-3">
-          <div className="mx-auto flex max-w-3xl items-center gap-3">
+          <div className="mx-auto flex max-w-3xl items-center gap-3 lg:max-w-5xl">
             <div className="flex-1">
               <p className="text-xs text-slate-500">{plural(count, 'item')} in round {nextRound}</p>
               <Money paise={total} strong className="text-lg" />
