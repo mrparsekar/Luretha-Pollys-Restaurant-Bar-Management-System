@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { AppShell } from '../components/AppShell'
 import { GuestSheet } from '../components/GuestSheet'
+import { JoinTableSheet } from '../components/JoinTableSheet'
 import { OrderLines, Totals } from '../components/OrderLines'
 import type { Draft } from '../components/ItemSheet'
 import { Badge, Button, Card, Empty, ErrorNote, Spinner } from '../components/ui'
@@ -29,12 +30,17 @@ export default function Tab(): ReactNode {
   const action = useAction()
   const [draft] = useStoredState<Draft[]>(`lp.round.${orderId}`, [])
   const [editingGuest, setEditingGuest] = useState(false)
+  const [joiningTable, setJoiningTable] = useState(false)
 
   const detail = state.data
   const order = detail?.order
   const mutable = order ? order.status === 'open' || order.status === 'billed' : false
   const unsent = draft.reduce((sum, line) => sum + line.qty, 0)
   const hasServedItems = (detail?.items ?? []).some((item) => item.status !== 'void')
+  const joinedTables = detail?.joinedTables ?? []
+  const tableLabel = detail?.tableLabel
+    ? [detail.tableLabel, ...joinedTables.map((table) => table.label)].join(' + ')
+    : null
 
   const voidLine = async (itemId: number, reason: string) => {
     await action.run(() => api.orders.voidItem(orderId, itemId, reason))
@@ -48,7 +54,7 @@ export default function Tab(): ReactNode {
 
   return (
     <AppShell
-      title={order ? `#${order.orderNo}${detail?.tableLabel ? ` · ${detail.tableLabel}` : ''}` : 'Order'}
+      title={order ? `#${order.orderNo}${tableLabel ? ` · ${tableLabel}` : ''}` : 'Order'}
       subtitle={
         order
           ? `${detail?.waiterName ?? ''} · opened ${timeLabel(order.openedAt)}${
@@ -128,6 +134,11 @@ export default function Tab(): ReactNode {
                   Guest details
                 </Button>
               </div>
+              {order.orderType === 'dine_in' && order.diningTableId ? (
+                <Button variant="secondary" size="lg" block onClick={() => setJoiningTable(true)}>
+                  Join a table
+                </Button>
+              ) : null}
               <Button
                 variant="secondary"
                 size="lg"
@@ -167,6 +178,20 @@ export default function Tab(): ReactNode {
               state.reload()
             }}
           />
+
+          {order.diningTableId ? (
+            <JoinTableSheet
+              open={joiningTable}
+              onClose={() => setJoiningTable(false)}
+              orderId={orderId}
+              primaryTableId={order.diningTableId}
+              joinedTableIds={joinedTables.map((table) => table.id)}
+              onJoined={() => {
+                setJoiningTable(false)
+                state.reload()
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
     </AppShell>

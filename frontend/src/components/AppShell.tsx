@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 
+import { SwitchUserSheet } from './SwitchUserSheet'
 import { useAuth } from '../state/auth'
 
 /* The chrome around every signed-in screen: a thin header that says where you
@@ -31,15 +33,9 @@ export function AppShell({
   action?: ReactNode
   children: ReactNode
 }): ReactNode {
-  const { user, settings, isOwner, signOut } = useAuth()
-  const navigate = useNavigate()
+  const { user, settings, isOwner } = useAuth()
   const items = isOwner ? OWNER_NAV : WAITER_NAV
-
-  /** Hands the shared device to the next person: sign out here, PIN in there. */
-  const switchUser = async () => {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
+  const [switching, setSwitching] = useState(false)
 
   return (
     <div className="min-h-dvh bg-cream pb-20">
@@ -56,7 +52,7 @@ export function AppShell({
           <div className="flex shrink-0 items-center gap-2">
             {action}
             <button
-              onClick={switchUser}
+              onClick={() => setSwitching(true)}
               className="min-h-11 rounded-xl px-3 text-xs font-semibold text-cream/80 active:bg-ink-soft"
             >
               Switch user
@@ -88,6 +84,8 @@ export function AppShell({
           ))}
         </div>
       </nav>
+
+      <SwitchUserSheet open={switching} onClose={() => setSwitching(false)} />
     </div>
   )
 }

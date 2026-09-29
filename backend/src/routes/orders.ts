@@ -10,6 +10,7 @@ import {
   addItems,
   changeTable,
   getOrderDetail,
+  joinTable,
   listOrders,
   listRunningOrders,
   markBilled,
@@ -97,6 +98,7 @@ orderRouter.get(
       items: detail.items,
       tableLabel: detail.tableLabel,
       waiterName: detail.waiterName,
+      joinedTables: detail.joinedTables,
       bill: await buildBill(detail, config),
     })
   }),
@@ -213,5 +215,13 @@ orderRouter.post(
   asyncHandler(async (req, res) => {
     const body = parseBody(z.object({ diningTableId: z.number().int().positive() }), req.body)
     res.json({ order: await changeTable(intParam(req.params.id), body.diningTableId, actor(req)) })
+  }),
+)
+
+orderRouter.post(
+  '/:id/join-table',
+  asyncHandler(async (req, res) => {
+    const body = parseBody(z.object({ diningTableId: z.number().int().positive() }), req.body)
+    res.json({ order: await joinTable(intParam(req.params.id), body.diningTableId, actor(req)) })
   }),
 )

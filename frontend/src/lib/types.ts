@@ -106,6 +106,14 @@ export type FloorTable = {
   seats: number
   sort: number
   order: OrderSummary | null
+  /** True when this table was pushed together with another and shares its order. */
+  joined: boolean
+}
+
+export type FloorResponse = {
+  tables: FloorTable[]
+  /** Distinct staff seen making a request in the last ~30s. */
+  activeStaff: number
 }
 
 export type DiningTable = {
@@ -227,6 +235,8 @@ export type OrderDetail = {
   items: OrderItem[]
   tableLabel: string | null
   waiterName: string
+  /** Other tables pushed together with the primary one for this same tab. */
+  joinedTables: { id: number; label: string }[]
   bill: BillView
 }
 

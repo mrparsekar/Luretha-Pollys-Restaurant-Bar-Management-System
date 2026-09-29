@@ -12,6 +12,8 @@ type AuthValue = {
   isOwner: boolean
   signedIn: (user: User) => void
   signOut: () => Promise<void>
+  /** A PIN login already overwrote the session cookie; this just catches the app up. */
+  switchUser: (user: User) => void
   refreshSettings: () => void
 }
 
@@ -66,20 +68,29 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 
   const signedIn = useCallback((next: User) => setUser(next), [])
 
+  const purgeDraftRounds = () => {
+    // A stale half-built round belongs to the person who just left.
+    try {
+      for (const key of Object.keys(window.localStorage)) {
+        if (key.startsWith('lp.round.')) window.localStorage.removeItem(key)
+      }
+    } catch {
+      // Nothing to do if storage is unavailable.
+    }
+  }
+
   const signOut = useCallback(async () => {
     try {
       await api.auth.logout()
     } finally {
       setUser(null)
-      // A stale half-built round belongs to the person who just left.
-      try {
-        for (const key of Object.keys(window.localStorage)) {
-          if (key.startsWith('lp.round.')) window.localStorage.removeItem(key)
-        }
-      } catch {
-        // Nothing to do if storage is unavailable.
-      }
+      purgeDraftRounds()
     }
+  }, [])
+
+  const switchUser = useCallback((next: User) => {
+    setUser(next)
+    purgeDraftRounds()
   }, [])
 
   // Any 401 from anywhere means the 12h session expired mid-shift.
@@ -96,9 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
       isOwner: user?.role === 'owner',
       signedIn,
       signOut,
+      switchUser,
       refreshSettings: () => setSettingsNonce((n) => n + 1),
     }),
-    [user, settings, booting, signedIn, signOut],
+    [user, settings, booting, signedIn, signOut, switchUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from 'express'
 import { db } from '../db/index.js'
 import { staff } from '../db/schema.js'
 import { ApiError } from '../lib/http.js'
+import { markSeen } from '../lib/presence.js'
 import { SESSION_COOKIE, readSessionToken, type SessionPayload, type SessionRole } from '../lib/session.js'
 
 declare global {
@@ -68,6 +69,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
         next(ApiError.unauthorized('This account is no longer active.'))
         return
       }
+      markSeen(session.sub)
       // The row wins over the cookie: a role change takes effect without re-login.
       req.session = { ...session, role: row.role, name: row.name }
       next()

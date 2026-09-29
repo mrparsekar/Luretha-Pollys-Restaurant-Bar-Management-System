@@ -4,7 +4,7 @@ import type {
   DeliveryOutcome,
   DeliveryRow,
   DiningTable,
-  FloorTable,
+  FloorResponse,
   LoginStaff,
   MailStatus,
   MenuCategory,
@@ -115,7 +115,7 @@ export type NewLine = {
 export const api = {
   auth: {
     me: () => get<{ user: User | null }>('/auth/me'),
-    loginStaff: () => get<{ staff: LoginStaff[] }>('/auth/staff'),
+    loginStaff: (options?: Options) => get<{ staff: LoginStaff[] }>('/auth/staff', options),
     pin: (staffId: number, pin: string) => post<{ user: User }>('/auth/pin', { staffId, pin }),
     owner: (email: string, password: string) =>
       post<{ user: User }>('/auth/owner', { email, password }),
@@ -146,7 +146,7 @@ export const api = {
   },
 
   tables: {
-    floor: (options?: Options) => get<{ tables: FloorTable[] }>('/tables/floor', options),
+    floor: (options?: Options) => get<FloorResponse>('/tables/floor', options),
     list: (all = false) => get<{ tables: DiningTable[] }>(`/tables${all ? '?all=1' : ''}`),
     waiters: () => get<{ waiters: { id: number; name: string }[] }>('/tables/waiters'),
     create: (body: Record<string, unknown>) => post<{ table: DiningTable }>('/tables', body),
@@ -202,6 +202,8 @@ export const api = {
       post<{ order: OrderSummary }>(`/orders/${id}/void`, { reason }),
     changeTable: (id: number, diningTableId: number) =>
       post<{ order: OrderSummary }>(`/orders/${id}/table`, { diningTableId }),
+    joinTable: (id: number, diningTableId: number) =>
+      post<{ order: OrderSummary }>(`/orders/${id}/join-table`, { diningTableId }),
   },
 
   bills: {

@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   date,
   index,
@@ -142,6 +143,14 @@ export const diningTables = pgTable(
     seats: integer('seats').notNull().default(4),
     sort: integer('sort').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
+    /**
+     * Set when this table is pushed together with another for one party. The
+     * table itself stays tableless - its own order (if any) was merged into
+     * this one - and is released back to null on settle, void or table change.
+     */
+    joinedOrderId: integer('joined_order_id').references((): AnyPgColumn => orders.id, {
+      onDelete: 'set null',
+    }),
   },
   (t) => [uniqueIndex('dining_tables_label_unique').on(t.label)],
 )

@@ -561,6 +561,7 @@ export async function settleOrder(
         .returning()
     )[0]
     if (!updated) throw new Error('Could not settle the order')
+    await releaseJoinedTables(tx, order.id)
     return updated
   })
 
@@ -603,6 +604,7 @@ export async function voidOrder(
         .returning()
     )[0]
     if (!updated) throw new Error('Could not cancel the order')
+    await releaseJoinedTables(tx, order.id)
     return { before: order, order: updated }
   })
 
@@ -616,6 +618,18 @@ export async function voidOrder(
   })
 
   return result.order
+}
+
+/**
+ * A joined table is only "part of this tab" because it sits next to the primary
+ * table right now. Once the order leaves that table - settled, voided, or moved
+ * elsewhere - the joined tables go back to free rather than staying stuck to it.
+ */
+async function releaseJoinedTables(tx: Tx, orderId: number): Promise<void> {
+  await tx
+    .update(diningTables)
+    .set({ joinedOrderId: null })
+    .where(eq(diningTables.joinedOrderId, orderId))
 }
 
 /** Guests move tables; the tab follows them. A waiter may move their own; the owner any. */
@@ -657,6 +671,7 @@ export async function changeTable(
         .returning()
     )[0]
     if (!updated) throw new Error('Could not move the order')
+    await releaseJoinedTables(tx, order.id)
     return { before: order, order: updated, label: table.label }
   })
 
@@ -667,6 +682,113 @@ export async function changeTable(
     entityId: orderId,
     before: { diningTableId: result.before.diningTableId },
     after: { diningTableId: result.order.diningTableId, label: result.label },
+  })
+
+  return result.order
+}
+
+/**
+ * Pushes another table into this tab, for a party that outgrows one table.
+ * A free table just gets linked; a table with its own running order has that
+ * order's items folded in (rounds renumbered so nothing collides) and its order
+ * voided, since the group is now one tab. A waiter may join onto their own
+ * order; the owner may join onto any.
+ */
+export async function joinTable(
+  orderId: number,
+  diningTableId: number,
+  session: SessionPayload,
+): Promise<Order> {
+  const config = await getSettings()
+
+  const result = await db.transaction(async (tx) => {
+    const order = await loadOrder(tx, orderId, true)
+    assertAccess(order, session)
+    assertMutable(order)
+    if (order.diningTableId === diningTableId) {
+      throw ApiError.badRequest('That is already this order\'s table.')
+    }
+
+    const table = (
+      await tx.select().from(diningTables).where(eq(diningTables.id, diningTableId)).limit(1)
+    )[0]
+    if (!table || !table.isActive) throw ApiError.notFound('That table is not available.')
+
+    if (table.joinedOrderId != null && table.joinedOrderId !== order.id) {
+      const holder = (
+        await tx
+          .select({ orderNo: orders.orderNo, status: orders.status })
+          .from(orders)
+          .where(eq(orders.id, table.joinedOrderId))
+          .limit(1)
+      )[0]
+      if (holder && (holder.status === 'open' || holder.status === 'billed')) {
+        throw ApiError.conflict(`${table.label} is already joined to order #${holder.orderNo}.`)
+      }
+    }
+
+    const secondary = (
+      await tx
+        .select({ id: orders.id, orderNo: orders.orderNo })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.diningTableId, table.id),
+            inArray(orders.status, ['open', 'billed']),
+            sql`${orders.id} <> ${order.id}`,
+          ),
+        )
+        .limit(1)
+    )[0]
+
+    if (secondary) {
+      const maxRound = await tx
+        .select({ value: sql<number>`coalesce(max(${orderItems.roundNo}), 0)` })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, order.id))
+      const offset = Number(maxRound[0]?.value ?? 0)
+
+      await tx
+        .update(orderItems)
+        .set({ orderId: order.id, roundNo: sql`${orderItems.roundNo} + ${offset}` })
+        .where(eq(orderItems.orderId, secondary.id))
+
+      await tx
+        .update(orders)
+        .set({ status: 'void', notes: `Merged into order #${order.orderNo}` })
+        .where(eq(orders.id, secondary.id))
+
+      await releaseJoinedTables(tx, secondary.id)
+    }
+
+    await tx
+      .update(diningTables)
+      .set({ joinedOrderId: order.id })
+      .where(eq(diningTables.id, table.id))
+
+    await tx.update(orders).set({ lastItemAt: new Date() }).where(eq(orders.id, order.id))
+
+    const fresh = await loadOrder(tx, order.id)
+    const updated = await recompute(tx, fresh, config)
+    return {
+      order: updated,
+      tableLabel: table.label,
+      mergedOrderId: secondary?.id ?? null,
+      mergedOrderNo: secondary?.orderNo ?? null,
+    }
+  })
+
+  await recordAudit({
+    actorId: session.sub,
+    action: 'order.join_table',
+    entity: 'order',
+    entityId: orderId,
+    after: {
+      orderNo: result.order.orderNo,
+      joinedTable: result.tableLabel,
+      mergedOrderId: result.mergedOrderId,
+      mergedOrderNo: result.mergedOrderNo,
+    },
   })
 
   return result.order
@@ -717,6 +839,8 @@ export type OrderDetail = {
   /** Who actually settled/closed the bill, when that differs from the waiter who took it. */
   settledByName: string | null
   items: Awaited<ReturnType<typeof loadItems>>
+  /** Other tables pushed together with the primary one for this same tab. */
+  joinedTables: { id: number; label: string }[]
 }
 
 function loadItems(orderId: number) {
@@ -748,6 +872,12 @@ export async function getOrderDetail(orderId: number): Promise<OrderDetail> {
   )[0]
   if (!row) throw ApiError.notFound('Order not found.')
 
+  const joinedTables = await db
+    .select({ id: diningTables.id, label: diningTables.label })
+    .from(diningTables)
+    .where(eq(diningTables.joinedOrderId, orderId))
+    .orderBy(asc(diningTables.sort), asc(diningTables.label))
+
   return {
     order: row.order,
     tableLabel: row.tableLabel,
@@ -755,6 +885,7 @@ export async function getOrderDetail(orderId: number): Promise<OrderDetail> {
     waiterName: row.waiterName,
     settledByName: row.settledByName,
     items: await loadItems(orderId),
+    joinedTables,
   }
 }
 

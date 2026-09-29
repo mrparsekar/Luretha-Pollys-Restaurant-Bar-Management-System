@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -16,15 +16,27 @@ const SECTIONS: { key: Section; label: string }[] = [
   { key: 'beach', label: 'Beach' },
 ]
 
+/** Fast enough to catch a collision, slow enough not to hammer the API when solo. */
+const SOLO_POLL_MS = 20_000
+const BUSY_POLL_MS = 5_000
+
 /**
  * The waiter's home. Tiles are tinted by state so the floor reads at a glance
  * from across the room: green is free, amber has a running tab, blue is billed
  * and waiting to be paid.
  */
 export default function Floor(): ReactNode {
-  const state = usePoll((signal) => api.tables.floor({ signal }), 15_000)
+  // Two waiters can only actually collide on a table when more than one is
+  // active at once, so the fast poll only kicks in then - otherwise this is
+  // one phone polling an API nobody else is about to race.
+  const [pollMs, setPollMs] = useState(SOLO_POLL_MS)
+  const state = usePoll((signal) => api.tables.floor({ signal }), pollMs)
   const now = useTicker(30_000)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (state.data) setPollMs((state.data.activeStaff ?? 0) > 1 ? BUSY_POLL_MS : SOLO_POLL_MS)
+  }, [state.data])
 
   const tables = state.data?.tables ?? []
   const grouped = useMemo(() => {
@@ -37,12 +49,20 @@ export default function Floor(): ReactNode {
     return map
   }, [tables])
 
-  const running = tables.filter((table) => table.order)
-  const openTotal = running.reduce((sum, table) => sum + (table.order?.totalPaise ?? 0), 0)
+  // A joined table shares its primary table's order, so count each order once
+  // rather than once per table it spans.
+  const runningOrders = useMemo(() => {
+    const byId = new Map<number, NonNullable<FloorTable['order']>>()
+    for (const table of tables) {
+      if (table.order) byId.set(table.order.id, table.order)
+    }
+    return [...byId.values()]
+  }, [tables])
+  const openTotal = runningOrders.reduce((sum, order) => sum + order.totalPaise, 0)
 
   return (
     <AppShell
-      subtitle={`${running.length} running · ${rupeesShort(openTotal)} on the floor`}
+      subtitle={`${runningOrders.length} running · ${rupeesShort(openTotal)} on the floor`}
       action={
         <Link
           to="/new"
@@ -130,8 +150,12 @@ function TableTile({
         <div>
           <Money paise={order.totalPaise} strong className="block text-lg" />
           <p className="text-xs text-slate-500">
-            {order.status === 'billed' ? 'Bill printed' : since(order.lastItemAt ?? order.openedAt, now)}
-            {order.itemCount > 0 ? ` · ${order.itemCount} items` : ''}
+            {table.joined
+              ? `Joined to ${order.tableLabel ?? `#${order.orderNo}`}`
+              : order.status === 'billed'
+                ? 'Bill printed'
+                : since(order.lastItemAt ?? order.openedAt, now)}
+            {!table.joined && order.itemCount > 0 ? ` · ${order.itemCount} items` : ''}
           </p>
         </div>
       ) : (

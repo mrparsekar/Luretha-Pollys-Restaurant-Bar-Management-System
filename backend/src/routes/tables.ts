@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 
 import { asyncHandler, intParam, parseBody } from '../lib/http.js'
+import { countActive } from '../lib/presence.js'
 import { requireAuth, requireOwner } from '../middleware/auth.js'
 import { createTable, getFloor, listTables, listWaiters, updateTable } from '../services/tables.js'
 
@@ -9,11 +10,15 @@ export const tableRouter = Router()
 
 tableRouter.use(requireAuth)
 
-/** The waiter's home screen: every table tinted by what is running on it. */
+/**
+ * The waiter's home screen: every table tinted by what is running on it.
+ * `activeStaff` lets the client poll fast only while a collision between two
+ * waiters claiming the same table is actually possible.
+ */
 tableRouter.get(
   '/floor',
   asyncHandler(async (_req, res) => {
-    res.json({ tables: await getFloor() })
+    res.json({ tables: await getFloor(), activeStaff: countActive() })
   }),
 )
 

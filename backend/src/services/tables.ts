@@ -16,6 +16,8 @@ export type FloorTable = {
    * behind the per-order access check, so one waiter cannot read another's order.
    */
   order: OrderSummary | null
+  /** True when this table was pushed together with another and shares its order. */
+  joined: boolean
 }
 
 export async function getFloor(): Promise<FloorTable[]> {
@@ -29,20 +31,27 @@ export async function getFloor(): Promise<FloorTable[]> {
   ])
 
   const byTable = new Map<number, OrderSummary>()
+  const byOrderId = new Map<number, OrderSummary>()
   for (const order of running) {
+    byOrderId.set(order.id, order)
     if (order.diningTableId != null && !byTable.has(order.diningTableId)) {
       byTable.set(order.diningTableId, order)
     }
   }
 
-  return tables.map((table) => ({
-    id: table.id,
-    label: table.label,
-    section: table.section,
-    seats: table.seats,
-    sort: table.sort,
-    order: byTable.get(table.id) ?? null,
-  }))
+  return tables.map((table) => {
+    const own = byTable.get(table.id) ?? null
+    const joined = own ? null : (table.joinedOrderId ? (byOrderId.get(table.joinedOrderId) ?? null) : null)
+    return {
+      id: table.id,
+      label: table.label,
+      section: table.section,
+      seats: table.seats,
+      sort: table.sort,
+      order: own ?? joined,
+      joined: own === null && joined !== null,
+    }
+  })
 }
 
 export async function listTables(includeInactive = false): Promise<DiningTable[]> {
