@@ -66,7 +66,7 @@ export default function Floor(): ReactNode {
       action={
         <Link
           to="/new"
-          className="min-h-11 rounded-xl bg-sand px-3 py-2 text-xs font-bold text-ink active:bg-sand-deep"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-sand px-3 py-2 text-xs font-bold text-ink active:bg-sand-deep"
         >
           + Order
         </Link>

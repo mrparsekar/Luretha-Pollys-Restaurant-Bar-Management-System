@@ -53,9 +53,10 @@ export function AppShell({
             {action}
             <button
               onClick={() => setSwitching(true)}
-              className="min-h-11 rounded-xl px-3 text-xs font-semibold text-cream/80 active:bg-ink-soft"
+              className="flex min-h-11 flex-col items-end justify-center rounded-xl px-3 leading-tight active:bg-ink-soft"
             >
-              Switch user
+              <span className="truncate text-xs font-semibold text-cream">{user?.name}</span>
+              <span className="text-xs font-semibold text-cream/80">Switch user</span>
             </button>
           </div>
         </div>

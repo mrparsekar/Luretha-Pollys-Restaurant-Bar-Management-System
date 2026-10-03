@@ -21,7 +21,7 @@ export function SwitchUserSheet({
   open: boolean
   onClose: () => void
 }): ReactNode {
-  const { switchUser, signOut } = useAuth()
+  const { user, switchUser, signOut } = useAuth()
   const navigate = useNavigate()
   const staff = useAsync(
     (signal) => (open ? api.auth.loginStaff({ signal }) : Promise.resolve({ staff: [] })),
@@ -99,6 +99,11 @@ export function SwitchUserSheet({
         </div>
       ) : (
         <div>
+          {user ? (
+            <p className="mb-3 text-center text-sm text-slate-500">
+              Signed in as <span className="font-semibold text-ink">{user.name}</span>
+            </p>
+          ) : null}
           <div className="grid gap-3">
             {(staff.data?.staff ?? []).map((member) => (
               <button
