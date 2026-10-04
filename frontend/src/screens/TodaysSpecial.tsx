@@ -7,9 +7,9 @@ import { useAsync } from '../lib/hooks'
 /**
  * Stock photos (Pexels License - free for commercial use, no attribution
  * required) stand in for the owner's own signage until they have their own:
- * palms and a lantern up top, a vivid sunset sea behind everything, a
- * whitewashed plank texture behind the list, real shells/starfish at the
- * foot of it. See frontend/public/images/.
+ * palms up top, a vivid sunset sea behind everything, a whitewashed plank
+ * texture behind the list, real shells/starfish at the foot of it. See
+ * frontend/public/images/.
  */
 const PAGE_BACKGROUND: CSSProperties = {
   backgroundImage:
@@ -24,14 +24,6 @@ const PALM_BANNER: CSSProperties = {
   backgroundPosition: 'center 30%',
   WebkitMaskImage: 'linear-gradient(to bottom, black 45%, transparent 95%)',
   maskImage: 'linear-gradient(to bottom, black 45%, transparent 95%)',
-}
-
-const LANTERN: CSSProperties = {
-  backgroundImage: "url('/images/lantern.jpg')",
-  backgroundSize: 'cover',
-  backgroundPosition: 'center 40%',
-  WebkitMaskImage: 'radial-gradient(closest-side, black 55%, transparent 100%)',
-  maskImage: 'radial-gradient(closest-side, black 55%, transparent 100%)',
 }
 
 const PLANK_LIST: CSSProperties = {
@@ -60,20 +52,15 @@ function Trinket({ src, position }: { src: string; position: string }): ReactNod
  * The page every table's QR code opens - one page for the whole restaurant, no
  * login, no ordering yet. A guest almost always lands here on their own phone
  * mid-scan. Styled after the owner's own beach-shack "Today's Special" board:
- * palms and a lantern over open sky, a rope-edged wood sign, real shells and
- * starfish resting along the bottom.
+ * palms over open sky, a rope-edged wood sign, real shells and starfish
+ * resting along the bottom.
  */
 export default function TodaysSpecial(): ReactNode {
   const state = useAsync((signal) => api.specials.public({ signal }), [])
 
   return (
     <div className="relative min-h-dvh" style={PAGE_BACKGROUND}>
-      <div className="relative h-56 w-full sm:h-64" style={PALM_BANNER} aria-hidden>
-        <div
-          className="absolute right-6 top-4 h-28 w-24 sm:right-10 sm:h-32 sm:w-28"
-          style={{ ...LANTERN, filter: 'drop-shadow(0 0 22px rgba(255,170,60,0.55))' }}
-        />
-      </div>
+      <div className="relative h-56 w-full sm:h-64" style={PALM_BANNER} aria-hidden />
 
       <div className="relative z-10 mx-auto -mt-16 w-full max-w-sm px-4 pb-10 sm:-mt-20">
         {state.loading ? (
@@ -133,8 +120,8 @@ export default function TodaysSpecial(): ReactNode {
                   ) : (
                     <ul className="divide-y divide-teal-900/10">
                       {state.data.items.map((item) => (
-                        <li key={item.id} className="flex items-start gap-3 px-5 py-4">
-                          <span aria-hidden className="mt-0.5 shrink-0 text-lg text-amber-600">
+                        <li key={item.id} className="flex items-center gap-3 px-5 py-4">
+                          <span aria-hidden className="shrink-0 text-lg text-amber-600">
                             ★
                           </span>
                           <span className="min-w-0 flex-1">

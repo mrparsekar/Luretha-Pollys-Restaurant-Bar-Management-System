@@ -46,11 +46,16 @@ export type SpecialSource = 'menu_item' | 'custom'
 
 export type SpecialItem = {
   id: number
+  menuItemId: number
   source: SpecialSource
   name: string
   description: string | null
   pricePaise: number | null
   isVeg: boolean | null
+  /** Set for a one-off; null once turned into a weekly repeat. */
+  onDate: string | null
+  /** 0=Sun..6=Sat. Only meaningful when onDate is null. Null/empty means every day. */
+  daysOfWeek: number[] | null
 }
 
 export type MenuVariant = {

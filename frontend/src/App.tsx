@@ -20,6 +20,7 @@ import TablesManager from './screens/admin/TablesManager'
 import StaffManager from './screens/admin/StaffManager'
 import SettingsScreen from './screens/admin/SettingsScreen'
 import SpecialsManager from './screens/admin/SpecialsManager'
+import SpecialsHistory from './screens/admin/SpecialsHistory'
 import More from './screens/admin/More'
 import Verify from './screens/admin/Verify'
 import { useAuth } from './state/auth'
@@ -182,6 +183,14 @@ export default function App(): ReactNode {
         element={
           <RequireAuth owner>
             <SpecialsManager />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/specials/history"
+        element={
+          <RequireAuth owner>
+            <SpecialsHistory />
           </RequireAuth>
         }
       />

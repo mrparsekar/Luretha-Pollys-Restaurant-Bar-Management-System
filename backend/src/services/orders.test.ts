@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db } from '../db/index.js'
-import { menuItems, orders, settings } from '../db/schema.js'
+import { dailySpecials, menuItems, orders, settings } from '../db/schema.js'
 import { buildBill, whatsappText } from '../lib/bill.js'
 import { businessDate } from '../lib/time.js'
 import {
@@ -13,7 +13,17 @@ import {
   SMALL_POUR_PAISE,
   type Fixtures,
 } from '../test/fixtures.js'
+import { getMenu, updateItem } from './menu.js'
 import { getSettings, SETTINGS_ID, updateSettings } from './settings.js'
+import {
+  addCustomSpecial,
+  addMenuItemSpecial,
+  listActiveSpecials,
+  listAllSpecials,
+  removeSpecial,
+  specialsHistory,
+  updateSpecialDays,
+} from './specials.js'
 import {
   addItems,
   getOrderDetail,
@@ -605,5 +615,157 @@ describe('settings row', () => {
     const rows = await db.select().from(settings).where(eq(settings.id, SETTINGS_ID))
     expect(rows).toHaveLength(1)
     expect(rows[0]!.businessDayStartHour).toBe(6)
+  })
+})
+
+describe("Today's Special pinned tab", () => {
+  afterEach(async () => {
+    await db.delete(dailySpecials).where(eq(dailySpecials.menuItemId, f.dish))
+    await updateSettings({ sectionOrder: null })
+  })
+
+  it('is absent from the menu when nothing is marked special', async () => {
+    const menu = await getMenu()
+    expect(menu.find((category) => category.name === "Today's Special")).toBeUndefined()
+  })
+
+  it('appears first once an item is marked special', async () => {
+    await addMenuItemSpecial(f.dish)
+    const menu = await getMenu()
+    expect(menu[0]?.name).toBe("Today's Special")
+    expect(menu[0]?.pinned).toBe(true)
+    expect(menu[0]?.items.map((item) => item.id)).toContain(f.dish)
+  })
+
+  it('still appears first even with a saved tab order from before it existed', async () => {
+    // An empty (non-null) saved order is what an owner's pre-existing "Reorder
+    // sections" save looks like from before Today's Special was introduced -
+    // its token was never in that list, so applySectionOrder alone would drop it.
+    await updateSettings({ sectionOrder: [] })
+    await addMenuItemSpecial(f.dish)
+
+    const menu = await getMenu()
+    expect(menu[0]?.name).toBe("Today's Special")
+  })
+})
+
+describe('custom "Today\'s Special" entries', () => {
+  afterEach(async () => {
+    // Cascades the matching daily_specials row.
+    await db.delete(menuItems).where(eq(menuItems.name, 'Test Custom Dish'))
+  })
+
+  it('without a price becomes ask-for-price, and still shows up in the pinned tab', async () => {
+    await addCustomSpecial({ name: 'Test Custom Dish' })
+    const [row] = await listAllSpecials()
+
+    const menu = await getMenu()
+    const item = menu[0]?.items.find((i) => i.name === 'Test Custom Dish')
+    expect(item).toBeDefined()
+    expect(item?.priceMode).toBe('ask')
+    expect(item?.needsPrice).toBe(true)
+    expect(row?.source).toBe('custom')
+  })
+
+  it('with a price becomes a fixed-price item', async () => {
+    await addCustomSpecial({ name: 'Test Custom Dish', pricePaise: 15_000 })
+    const menu = await getMenu()
+    const item = menu[0]?.items.find((i) => i.name === 'Test Custom Dish')
+    expect(item?.priceMode).toBe('fixed')
+    expect(item?.basePricePaise).toBe(15_000)
+  })
+
+  it('can have its price added afterwards through the normal item editor', async () => {
+    await addCustomSpecial({ name: 'Test Custom Dish' })
+    const [row] = await listAllSpecials()
+    await updateItem(row!.menuItemId, { priceMode: 'fixed', basePricePaise: 20_000 }, f.owner)
+
+    const menu = await getMenu()
+    const item = menu[0]?.items.find((i) => i.name === 'Test Custom Dish')
+    expect(item?.priceMode).toBe('fixed')
+    expect(item?.basePricePaise).toBe(20_000)
+  })
+
+  it('can be marked veg or non-veg', async () => {
+    await addCustomSpecial({ name: 'Test Custom Dish', isVeg: true })
+    const [row] = await listAllSpecials()
+    expect(row?.isVeg).toBe(true)
+  })
+})
+
+describe('special scheduling (one-off by default, repeat opt-in) and history', () => {
+  // The fixture clock is frozen to 2 Sep 2026.
+  const TODAY = '2026-09-02'
+  const TODAY_WEEKDAY = new Date(Date.UTC(2026, 8, 2)).getUTCDay()
+  const OTHER_WEEKDAY = (TODAY_WEEKDAY + 1) % 7
+
+  afterEach(async () => {
+    await db.delete(dailySpecials).where(eq(dailySpecials.menuItemId, f.dish))
+  })
+
+  it('defaults to a one-off for today', async () => {
+    await addMenuItemSpecial(f.dish)
+    const [row] = await listAllSpecials()
+    expect(row?.onDate).toBe(TODAY)
+    expect(row?.daysOfWeek).toBeNull()
+
+    const active = await listActiveSpecials()
+    expect(active.some((s) => s.menuItemId === f.dish)).toBe(true)
+  })
+
+  it("a past one-off drops off the plan and today's tab on its own", async () => {
+    await addMenuItemSpecial(f.dish)
+    const [row] = await listAllSpecials()
+    await db.update(dailySpecials).set({ onDate: '2026-09-01' }).where(eq(dailySpecials.id, row!.id))
+
+    expect((await listAllSpecials()).some((s) => s.menuItemId === f.dish)).toBe(false)
+    expect((await listActiveSpecials()).some((s) => s.menuItemId === f.dish)).toBe(false)
+  })
+
+  it('updateSpecialDays turns it into a repeat and clears the one-off date', async () => {
+    await addMenuItemSpecial(f.dish)
+    const [row] = await listAllSpecials()
+    await updateSpecialDays(row!.id, [OTHER_WEEKDAY])
+
+    const [updated] = await listAllSpecials()
+    expect(updated?.onDate).toBeNull()
+    expect(updated?.daysOfWeek).toEqual([OTHER_WEEKDAY])
+    expect((await listActiveSpecials()).some((s) => s.menuItemId === f.dish)).toBe(false)
+
+    await updateSpecialDays(row!.id, [TODAY_WEEKDAY])
+    expect((await listActiveSpecials()).some((s) => s.menuItemId === f.dish)).toBe(true)
+  })
+
+  it('updateSpecialDays with no days at all repeats every day', async () => {
+    await addMenuItemSpecial(f.dish)
+    const [row] = await listAllSpecials()
+    await updateSpecialDays(row!.id, [OTHER_WEEKDAY])
+    await updateSpecialDays(row!.id, null)
+
+    const active = await listActiveSpecials()
+    expect(active.some((s) => s.menuItemId === f.dish)).toBe(true)
+  })
+
+  it('removeSpecial soft-deletes: gone from the live plan, but still in history for a date before removal', async () => {
+    await addMenuItemSpecial(f.dish)
+    const [row] = await listAllSpecials()
+
+    // Backdate it to look like it was today's special yesterday, then remove it "now" (2 Sep).
+    await db
+      .update(dailySpecials)
+      .set({ createdAt: new Date('2026-09-01T10:00:00Z'), onDate: '2026-09-01' })
+      .where(eq(dailySpecials.id, row!.id))
+    await removeSpecial(row!.id)
+
+    expect((await listAllSpecials()).some((s) => s.menuItemId === f.dish)).toBe(false)
+
+    const yesterday = await specialsHistory('2026-09-01')
+    expect(yesterday.some((s) => s.menuItemId === f.dish)).toBe(true)
+  })
+
+  it('history excludes a date before the special ever existed', async () => {
+    await addMenuItemSpecial(f.dish)
+    const history = await specialsHistory('2020-01-01')
+    expect(history.some((s) => s.menuItemId === f.dish)).toBe(false)
   })
 })

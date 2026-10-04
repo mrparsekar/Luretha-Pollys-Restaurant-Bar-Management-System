@@ -163,10 +163,17 @@ export const api = {
       ),
     list: () => get<{ items: SpecialItem[] }>('/specials'),
     qr: () => get<{ dataUrl: string; url: string }>('/specials/qr'),
+    history: (date: string) => get<{ date: string; items: SpecialItem[] }>(`/specials/history/${date}`),
     addMenuItem: (menuItemId: number) =>
       post<{ items: SpecialItem[] }>('/specials/menu-item', { menuItemId }),
-    addCustom: (body: { name: string; description?: string | null; pricePaise?: number | null }) =>
-      post<{ items: SpecialItem[] }>('/specials/custom', body),
+    addCustom: (body: {
+      name: string
+      description?: string | null
+      pricePaise?: number | null
+      isVeg?: boolean | null
+    }) => post<{ items: SpecialItem[] }>('/specials/custom', body),
+    updateDays: (id: number, daysOfWeek: number[] | null) =>
+      patch<{ items: SpecialItem[] }>(`/specials/${id}/days`, { daysOfWeek }),
     remove: (id: number) => del<{ ok: true }>(`/specials/${id}`),
   },
 

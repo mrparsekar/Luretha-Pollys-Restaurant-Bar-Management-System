@@ -31,7 +31,6 @@ export const paymentMode = pgEnum('payment_mode', ['cash', 'upi'])
 export const discountType = pgEnum('discount_type', ['none', 'amount', 'percent'])
 export const deliveryChannel = pgEnum('delivery_channel', ['whatsapp', 'email'])
 export const deliveryStatus = pgEnum('delivery_status', ['queued', 'opened', 'sent', 'failed'])
-export const specialSource = pgEnum('special_source', ['menu_item', 'custom'])
 
 /** Single row (id = 1). Everything the owner can change without a redeploy. */
 export const settings = pgTable('settings', {
@@ -157,19 +156,35 @@ export const diningTables = pgTable(
 )
 
 /**
- * The owner's curated "Today's Special" list shown on the public QR page. Either
- * points at a real menu item (which also surfaces as a pinned quick-pick section
- * when staff take an order) or is a free-typed entry that only ever shows on the
- * public page, for a dish that isn't on the regular menu at all.
+ * The owner's curated "Today's Special" list shown on the public QR page and,
+ * for as long as the underlying item stays available, as a pinned quick-pick
+ * section when staff take an order. Always points at a real menu item - a
+ * "custom" entry typed in fresh (not previously on the card) gets one created
+ * for it automatically under the reserved "Specials" category, so it is
+ * editable and orderable exactly like anything else on the menu, including
+ * the normal ask-for-price flow when the owner leaves its price blank.
+ *
+ * Defaults to a one-off for `onDate` alone - "special for today" is the
+ * common case, and it simply stops showing once that date passes, no cleanup
+ * needed. The owner can instead turn one into a weekly repeat on `daysOfWeek`
+ * (0=Sun..6=Sat; null/empty means every day), which clears `onDate`. Exactly
+ * one of the two is ever set.
+ *
+ * Removing one never deletes the row - it just stamps `removedAt` - so
+ * history can show what was actually live on a past date without a separate
+ * log table. A unique *current* row per item is enforced in the service
+ * layer, not here, since a past one-off and a fresh one for the same item
+ * must be able to coexist.
  */
 export const dailySpecials = pgTable('daily_specials', {
   id: serial('id').primaryKey(),
-  source: specialSource('source').notNull(),
-  menuItemId: integer('menu_item_id').references(() => menuItems.id, { onDelete: 'cascade' }),
-  customName: text('custom_name'),
-  customDescription: text('custom_description'),
-  customPricePaise: integer('custom_price_paise'),
+  menuItemId: integer('menu_item_id')
+    .notNull()
+    .references(() => menuItems.id, { onDelete: 'cascade' }),
+  onDate: date('on_date'),
+  daysOfWeek: integer('days_of_week').array(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  removedAt: timestamp('removed_at', { withTimezone: true }),
 })
 
 /** Race-free source of the per-day order number. */

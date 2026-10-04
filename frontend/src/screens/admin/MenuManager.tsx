@@ -132,7 +132,9 @@ export default function MenuManager(): ReactNode {
       {adding ? <AddItem categories={menu} onClose={done} /> : null}
       {reordering ? (
         <SectionOrder
-          menu={menu}
+          // Today's Special (-3) always sits first on its own, unconditionally -
+          // it isn't part of this reorder/hide system, so it never appears here.
+          menu={menu.filter((category) => category.id !== -3)}
           onClose={() => {
             setReordering(false)
             state.reload()

@@ -1,0 +1,1 @@
+ALTER TABLE "daily_specials" ADD COLUMN "on_date" date;

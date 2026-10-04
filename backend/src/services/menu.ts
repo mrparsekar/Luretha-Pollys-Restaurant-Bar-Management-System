@@ -60,13 +60,19 @@ export type MenuCategoryView = {
 /** Sentinel ids for the computed tabs: negative, so they never collide with a real category id. */
 export const PINNED_FOOD_CATEGORY_ID = -1
 export const PINNED_DRINKS_CATEGORY_ID = -2
+/**
+ * Today's Special is not part of the owner's reorder/hide system below - it is
+ * always first, unconditionally, whenever the owner has picked at least one.
+ * That keeps it showing up even for a restaurant with an old saved tab order
+ * from before this existed, which would otherwise silently drop it (see
+ * applySectionOrder).
+ */
 export const PINNED_SPECIAL_CATEGORY_ID = -3
 
 const FOOD_GROUPS: readonly MenuGroup[] = ['breakfast', 'food', 'dessert']
 const DRINK_GROUPS: readonly MenuGroup[] = ['bar', 'beverage']
 
 function sectionToken(category: MenuCategoryView): string {
-  if (category.id === PINNED_SPECIAL_CATEGORY_ID) return 'pinned:special'
   if (category.id === PINNED_FOOD_CATEGORY_ID) return 'pinned:food'
   if (category.id === PINNED_DRINKS_CATEGORY_ID) return 'pinned:drinks'
   return `cat:${category.id}`
@@ -196,7 +202,7 @@ export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]
   const [base, config, specialIds, foodIds, drinkIds] = await Promise.all([
     loadCategories(at),
     getSettings(),
-    specialMenuItemIds(),
+    specialMenuItemIds(at),
     popularItemIds('food'),
     popularItemIds('drinks'),
   ])
@@ -209,18 +215,6 @@ export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]
   const specialItems = resolve(specialIds)
   const foodItems = resolve(foodIds)
   const drinkItems = resolve(drinkIds)
-  // Ahead of Most Ordered: the owner picked these on purpose, today.
-  if (specialItems.length > 0) {
-    pinned.push({
-      id: PINNED_SPECIAL_CATEGORY_ID,
-      name: "Today's Special",
-      group: 'food',
-      note: null,
-      sort: -3,
-      pinned: true,
-      items: specialItems,
-    })
-  }
   if (foodItems.length > 0) {
     pinned.push({
       id: PINNED_FOOD_CATEGORY_ID,
@@ -244,13 +238,29 @@ export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]
     })
   }
 
-  return applySectionOrder([...pinned, ...base], config.sectionOrder)
+  const ordered = applySectionOrder([...pinned, ...base], config.sectionOrder)
+
+  // Always first, unconditionally - not part of the reorder/hide system above,
+  // so an old saved tab order from before this existed can never swallow it.
+  if (specialItems.length === 0) return ordered
+  return [
+    {
+      id: PINNED_SPECIAL_CATEGORY_ID,
+      name: "Today's Special",
+      group: 'food',
+      note: null,
+      sort: -3,
+      pinned: true,
+      items: specialItems,
+    },
+    ...ordered,
+  ]
 }
 
 /** Every live category id plus the two pinned keys, for validating a saved tab order. */
 async function knownSectionTokens(): Promise<Set<string>> {
   const rows = await db.select({ id: categories.id }).from(categories)
-  return new Set(['pinned:special', 'pinned:food', 'pinned:drinks', ...rows.map((row) => `cat:${row.id}`)])
+  return new Set(['pinned:food', 'pinned:drinks', ...rows.map((row) => `cat:${row.id}`)])
 }
 
 /** Owner's drag-to-reorder of the whole tab strip, pinned tabs included. */
