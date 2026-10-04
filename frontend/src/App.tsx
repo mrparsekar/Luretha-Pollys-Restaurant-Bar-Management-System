@@ -11,6 +11,7 @@ import MenuPick from './screens/MenuPick'
 import Kot from './screens/Kot'
 import StaffBill from './screens/StaffBill'
 import PublicBill from './screens/PublicBill'
+import TodaysSpecial from './screens/TodaysSpecial'
 import Board from './screens/admin/Board'
 import OrderAdmin from './screens/admin/OrderAdmin'
 import Reports from './screens/admin/Reports'
@@ -18,6 +19,7 @@ import MenuManager from './screens/admin/MenuManager'
 import TablesManager from './screens/admin/TablesManager'
 import StaffManager from './screens/admin/StaffManager'
 import SettingsScreen from './screens/admin/SettingsScreen'
+import SpecialsManager from './screens/admin/SpecialsManager'
 import More from './screens/admin/More'
 import Verify from './screens/admin/Verify'
 import { useAuth } from './state/auth'
@@ -50,6 +52,8 @@ export default function App(): ReactNode {
     <Routes>
       {/* Public: the link a guest gets on WhatsApp. */}
       <Route path="/bill/:token" element={<PublicBill />} />
+      {/* Public: what every table's QR code opens - one page for the whole restaurant. */}
+      <Route path="/special" element={<TodaysSpecial />} />
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<Home />} />
 
@@ -170,6 +174,14 @@ export default function App(): ReactNode {
         element={
           <RequireAuth owner>
             <SettingsScreen />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/specials"
+        element={
+          <RequireAuth owner>
+            <SpecialsManager />
           </RequireAuth>
         }
       />

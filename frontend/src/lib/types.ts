@@ -42,6 +42,17 @@ export type Settings = {
 
 export type MailStatus = { configured: boolean; from?: string | null; host?: string | null }
 
+export type SpecialSource = 'menu_item' | 'custom'
+
+export type SpecialItem = {
+  id: number
+  source: SpecialSource
+  name: string
+  description: string | null
+  pricePaise: number | null
+  isVeg: boolean | null
+}
+
 export type MenuVariant = {
   id: number
   label: string

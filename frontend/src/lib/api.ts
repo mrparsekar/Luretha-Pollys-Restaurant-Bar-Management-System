@@ -13,6 +13,7 @@ import type {
   PaymentMode,
   ReportSummary,
   Settings,
+  SpecialItem,
   StaffMember,
   User,
   VerificationSection,
@@ -152,6 +153,21 @@ export const api = {
     create: (body: Record<string, unknown>) => post<{ table: DiningTable }>('/tables', body),
     update: (id: number, body: Record<string, unknown>) =>
       patch<{ table: DiningTable }>(`/tables/${id}`, body),
+  },
+
+  specials: {
+    public: (options?: Options) =>
+      get<{ restaurantName: string; tagline: string | null; items: SpecialItem[] }>(
+        '/specials/public',
+        options,
+      ),
+    list: () => get<{ items: SpecialItem[] }>('/specials'),
+    qr: () => get<{ dataUrl: string; url: string }>('/specials/qr'),
+    addMenuItem: (menuItemId: number) =>
+      post<{ items: SpecialItem[] }>('/specials/menu-item', { menuItemId }),
+    addCustom: (body: { name: string; description?: string | null; pricePaise?: number | null }) =>
+      post<{ items: SpecialItem[] }>('/specials/custom', body),
+    remove: (id: number) => del<{ ok: true }>(`/specials/${id}`),
   },
 
   orders: {

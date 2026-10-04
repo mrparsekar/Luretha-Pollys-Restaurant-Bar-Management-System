@@ -18,6 +18,7 @@ import { MAX_ITEM_PRICE_PAISE } from '../lib/money.js'
 import type { SessionPayload } from '../lib/session.js'
 import { formatClock, isWithinWindow } from '../lib/time.js'
 import { getSettings, updateSettings } from './settings.js'
+import { specialMenuItemIds } from './specials.js'
 
 export type MenuVariantView = {
   id: number
@@ -56,14 +57,16 @@ export type MenuCategoryView = {
   pinned?: boolean
 }
 
-/** Sentinel ids for the two computed tabs: negative, so they never collide with a real category id. */
+/** Sentinel ids for the computed tabs: negative, so they never collide with a real category id. */
 export const PINNED_FOOD_CATEGORY_ID = -1
 export const PINNED_DRINKS_CATEGORY_ID = -2
+export const PINNED_SPECIAL_CATEGORY_ID = -3
 
 const FOOD_GROUPS: readonly MenuGroup[] = ['breakfast', 'food', 'dessert']
 const DRINK_GROUPS: readonly MenuGroup[] = ['bar', 'beverage']
 
 function sectionToken(category: MenuCategoryView): string {
+  if (category.id === PINNED_SPECIAL_CATEGORY_ID) return 'pinned:special'
   if (category.id === PINNED_FOOD_CATEGORY_ID) return 'pinned:food'
   if (category.id === PINNED_DRINKS_CATEGORY_ID) return 'pinned:drinks'
   return `cat:${category.id}`
@@ -190,9 +193,10 @@ async function popularItemIds(bucket: 'food' | 'drinks', limit = 12): Promise<nu
 
 /** The whole card in one request: the waiter phone caches it and searches locally. */
 export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]> {
-  const [base, config, foodIds, drinkIds] = await Promise.all([
+  const [base, config, specialIds, foodIds, drinkIds] = await Promise.all([
     loadCategories(at),
     getSettings(),
+    specialMenuItemIds(),
     popularItemIds('food'),
     popularItemIds('drinks'),
   ])
@@ -202,8 +206,21 @@ export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]
     ids.map((id) => itemById.get(id)).filter((item): item is MenuItemView => item !== undefined)
 
   const pinned: MenuCategoryView[] = []
+  const specialItems = resolve(specialIds)
   const foodItems = resolve(foodIds)
   const drinkItems = resolve(drinkIds)
+  // Ahead of Most Ordered: the owner picked these on purpose, today.
+  if (specialItems.length > 0) {
+    pinned.push({
+      id: PINNED_SPECIAL_CATEGORY_ID,
+      name: "Today's Special",
+      group: 'food',
+      note: null,
+      sort: -3,
+      pinned: true,
+      items: specialItems,
+    })
+  }
   if (foodItems.length > 0) {
     pinned.push({
       id: PINNED_FOOD_CATEGORY_ID,
@@ -233,7 +250,7 @@ export async function getMenu(at: Date = new Date()): Promise<MenuCategoryView[]
 /** Every live category id plus the two pinned keys, for validating a saved tab order. */
 async function knownSectionTokens(): Promise<Set<string>> {
   const rows = await db.select({ id: categories.id }).from(categories)
-  return new Set(['pinned:food', 'pinned:drinks', ...rows.map((row) => `cat:${row.id}`)])
+  return new Set(['pinned:special', 'pinned:food', 'pinned:drinks', ...rows.map((row) => `cat:${row.id}`)])
 }
 
 /** Owner's drag-to-reorder of the whole tab strip, pinned tabs included. */

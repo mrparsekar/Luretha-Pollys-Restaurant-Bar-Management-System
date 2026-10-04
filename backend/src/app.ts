@@ -11,6 +11,7 @@ import { menuRouter } from './routes/menu.js'
 import { orderRouter } from './routes/orders.js'
 import { reportRouter } from './routes/reports.js'
 import { settingsRouter } from './routes/settings.js'
+import { specialsRouter } from './routes/specials.js'
 import { staffRouter } from './routes/staff.js'
 import { tableRouter } from './routes/tables.js'
 
@@ -63,6 +64,7 @@ export function createApp(): Express {
   app.use('/api/reports', reportRouter)
   app.use('/api/staff', staffRouter)
   app.use('/api/settings', settingsRouter)
+  app.use('/api/specials', specialsRouter)
 
   app.use(notFoundHandler)
   app.use(errorHandler)

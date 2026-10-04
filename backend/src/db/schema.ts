@@ -31,6 +31,7 @@ export const paymentMode = pgEnum('payment_mode', ['cash', 'upi'])
 export const discountType = pgEnum('discount_type', ['none', 'amount', 'percent'])
 export const deliveryChannel = pgEnum('delivery_channel', ['whatsapp', 'email'])
 export const deliveryStatus = pgEnum('delivery_status', ['queued', 'opened', 'sent', 'failed'])
+export const specialSource = pgEnum('special_source', ['menu_item', 'custom'])
 
 /** Single row (id = 1). Everything the owner can change without a redeploy. */
 export const settings = pgTable('settings', {
@@ -154,6 +155,22 @@ export const diningTables = pgTable(
   },
   (t) => [uniqueIndex('dining_tables_label_unique').on(t.label)],
 )
+
+/**
+ * The owner's curated "Today's Special" list shown on the public QR page. Either
+ * points at a real menu item (which also surfaces as a pinned quick-pick section
+ * when staff take an order) or is a free-typed entry that only ever shows on the
+ * public page, for a dish that isn't on the regular menu at all.
+ */
+export const dailySpecials = pgTable('daily_specials', {
+  id: serial('id').primaryKey(),
+  source: specialSource('source').notNull(),
+  menuItemId: integer('menu_item_id').references(() => menuItems.id, { onDelete: 'cascade' }),
+  customName: text('custom_name'),
+  customDescription: text('custom_description'),
+  customPricePaise: integer('custom_price_paise'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
 
 /** Race-free source of the per-day order number. */
 export const dailyCounters = pgTable('daily_counters', {
@@ -282,6 +299,7 @@ export type Category = typeof categories.$inferSelect
 export type MenuItem = typeof menuItems.$inferSelect
 export type ItemVariant = typeof itemVariants.$inferSelect
 export type DiningTable = typeof diningTables.$inferSelect
+export type DailySpecial = typeof dailySpecials.$inferSelect
 export type Order = typeof orders.$inferSelect
 export type OrderItem = typeof orderItems.$inferSelect
 export type Settings = typeof settings.$inferSelect

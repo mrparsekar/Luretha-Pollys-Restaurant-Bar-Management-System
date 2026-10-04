@@ -15,6 +15,7 @@ const TILE =
 
 const LINKS = [
   { to: '/admin/menu', label: 'Menu', hint: 'Prices, 86, new items' },
+  { to: '/admin/specials', label: "Today's Special", hint: 'Pick what the QR page shows' },
   { to: '/admin/tables', label: 'Tables', hint: 'Floor plan, seats' },
   { to: '/admin/staff', label: 'Staff', hint: 'Waiters and PINs' },
   { to: '/admin/settings', label: 'Settings', hint: 'Bill details, tax' },

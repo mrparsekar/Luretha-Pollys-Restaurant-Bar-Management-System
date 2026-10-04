@@ -65,6 +65,11 @@ export function billUrlFor(token: string | null): string | null {
   return token ? `${env.publicAppUrl}/bill/${token}` : null
 }
 
+/** One URL for the whole restaurant - every table's QR code points at the same page. */
+export function specialsUrlFor(): string {
+  return `${env.publicAppUrl}/special`
+}
+
 function pct(bps: number): string {
   const value = bps / 100
   return Number.isInteger(value) ? `${value}%` : `${value.toFixed(2)}%`
@@ -86,7 +91,7 @@ export function upiPayUrl(
   return `upi://pay?${params.toString()}`
 }
 
-function qrDataUrl(text: string): Promise<string> {
+export function qrDataUrl(text: string): Promise<string> {
   return QRCode.toDataURL(text, { margin: 1, width: 320, errorCorrectionLevel: 'M' })
 }
 

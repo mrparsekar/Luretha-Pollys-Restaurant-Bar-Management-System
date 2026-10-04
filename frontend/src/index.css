@@ -75,6 +75,39 @@
   caret-color: transparent;
 }
 
+/* The public specials page: a gentle rise-in for the sign, a slow twinkle on
+   its sparkle accents. Both are neutralised by the reduced-motion rule above. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 0.7s ease-out both;
+}
+
+.animate-twinkle {
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+
 /* ---------------------------------------------------------------------------
  * Print. The client owns whatever printer they own, so both layouts ship: a
  * 80mm thermal roll and an A4 sheet. The bill screen sets data-print on <html>
