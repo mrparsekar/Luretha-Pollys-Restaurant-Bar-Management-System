@@ -23,6 +23,12 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   /* Bills are read as columns of digits, so they get a tabular face. */
   --font-bill: ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+
+  /* The public specials sign, hand-painted beach-shack style. */
+  --font-display: 'Playfair Display', Georgia, serif; /* the LURETHA & POLLYS wordmark */
+  --font-byline: 'Dancing Script', cursive; /* "by Alex" */
+  --font-script: 'Kalam', cursive; /* "Today's Special", paint-marker brush */
+  --font-list: 'Baloo 2', ui-rounded, sans-serif; /* the special items themselves */
 }
 
 @layer base {

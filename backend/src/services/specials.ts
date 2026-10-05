@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, gte, isNull, lte, or } from 'drizzle-orm'
 
 import { db } from '../db/index.js'
 import { categories, dailySpecials, menuItems } from '../db/schema.js'
@@ -112,7 +112,7 @@ export async function specialsHistory(dateStr: string): Promise<SpecialView[]> {
     .where(
       and(
         lte(dailySpecials.createdAt, dayEnd),
-        or(isNull(dailySpecials.removedAt), sql`${dailySpecials.removedAt} > ${dayStart}`),
+        or(isNull(dailySpecials.removedAt), gt(dailySpecials.removedAt, dayStart)),
       ),
     )
     .orderBy(asc(dailySpecials.id))
