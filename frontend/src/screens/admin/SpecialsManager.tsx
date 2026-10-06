@@ -11,6 +11,9 @@ import type { SpecialItem } from '../../lib/types'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+/** The QR page's board only has room to show this many before the text has to shrink past readable. */
+const MAX_SPECIALS = 10
+
 function scheduleLabel(item: Pick<SpecialItem, 'onDate' | 'daysOfWeek'>): string {
   if (item.onDate) return 'Just today'
   const days = item.daysOfWeek
@@ -126,8 +129,16 @@ export default function SpecialsManager(): ReactNode {
         </section>
       ) : null}
 
-      <AddFromMenu onAdded={reload} />
-      <AddCustom onAdded={reload} />
+      {items.length >= MAX_SPECIALS ? (
+        <p className="mb-6 rounded-2xl border border-slate-200 bg-white p-3 text-center text-xs font-semibold text-slate-500">
+          Maximum of {MAX_SPECIALS} specials reached - remove one to add another.
+        </p>
+      ) : (
+        <>
+          <AddFromMenu onAdded={reload} />
+          <AddCustom onAdded={reload} />
+        </>
+      )}
 
       <p className="mt-6 text-center">
         <Link to="/admin/specials/history" className="text-xs font-semibold underline text-slate-500">
