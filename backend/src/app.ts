@@ -42,7 +42,9 @@ export function createApp(): Express {
     }),
   )
 
-  app.use(express.json({ limit: '256kb' }))
+  // Gallery uploads arrive as base64 data URLs so the app works locally and
+  // without a separate object-storage service. Keep the request bounded.
+  app.use(express.json({ limit: '25mb' }))
   app.use(cookieParser())
   app.use(attachSession)
 

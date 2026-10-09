@@ -57,6 +57,55 @@
       "when": 1791133539659,
       "tag": "0007_safe_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791540000000,
+      "tag": "0008_special_gallery",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791540001000,
+      "tag": "0009_special_gallery_cloudinary",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791540002000,
+      "tag": "0010_special_gallery_retention",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791540003000,
+      "tag": "0011_special_gallery_batches",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791540004000,
+      "tag": "0012_fix_reversed_30ml_label",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791540005000,
+      "tag": "0013_special_expiry_time",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791540006000,
+      "tag": "0014_remove_special_expiry_time",
+      "breakpoints": true
     }
   ]
 }

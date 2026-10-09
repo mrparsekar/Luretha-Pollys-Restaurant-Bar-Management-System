@@ -187,6 +187,21 @@ export const dailySpecials = pgTable('daily_specials', {
   removedAt: timestamp('removed_at', { withTimezone: true }),
 })
 
+/**
+ * The QR landing page is an image gallery owned by the restaurant, not a list
+ * of orderable menu items. `sort` controls the carousel order; the lowest
+ * value is the landing image.
+ */
+export const specialGalleryImages = pgTable('special_gallery_images', {
+  id: serial('id').primaryKey(),
+  imageData: text('image_data').notNull(),
+  publicId: text('public_id'),
+  batchId: text('batch_id'),
+  isActive: boolean('is_active').notNull().default(true),
+  sort: integer('sort').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 /** Race-free source of the per-day order number. */
 export const dailyCounters = pgTable('daily_counters', {
   businessDate: date('business_date').primaryKey(),

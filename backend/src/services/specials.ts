@@ -1,9 +1,11 @@
-import { and, asc, eq, gt, gte, isNull, lte, or } from 'drizzle-orm'
+import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or } from 'drizzle-orm'
+import { randomUUID } from 'node:crypto'
 
 import { db } from '../db/index.js'
-import { categories, dailySpecials, menuItems } from '../db/schema.js'
+import { categories, dailySpecials, menuItems, specialGalleryImages } from '../db/schema.js'
 import { ApiError } from '../lib/http.js'
 import { businessDate } from '../lib/time.js'
+import { deleteSpecialImage, uploadSpecialImage } from './cloudinary.js'
 import { getSettings } from './settings.js'
 
 /** The one reserved category a custom-typed special's auto-created item lives under. */
@@ -22,6 +24,89 @@ export type SpecialView = {
   onDate: string | null
   /** 0=Sun..6=Sat. Only meaningful when onDate is null. Null/empty means every day. */
   daysOfWeek: number[] | null
+}
+
+export async function listSpecialGalleryImages(): Promise<string[]> {
+  await cleanupExpiredSpecialGalleryImages()
+  const rows = await db
+    .select({ imageData: specialGalleryImages.imageData })
+    .from(specialGalleryImages)
+    .where(eq(specialGalleryImages.isActive, true))
+    .orderBy(asc(specialGalleryImages.sort), asc(specialGalleryImages.id))
+  return rows.map((row) => row.imageData)
+}
+
+export async function listLiveSpecialGalleryImages(): Promise<string[]> {
+  return listSpecialGalleryImages()
+}
+
+export async function replaceSpecialGalleryImages(images: readonly string[]): Promise<void> {
+  const existing = await db
+    .select({ id: specialGalleryImages.id, imageData: specialGalleryImages.imageData, publicId: specialGalleryImages.publicId })
+    .from(specialGalleryImages)
+    .where(eq(specialGalleryImages.isActive, true))
+  const uploaded = [] as Awaited<ReturnType<typeof uploadSpecialImage>>[]
+  const reusedIds: number[] = []
+  const prepared = await Promise.all(images.map(async (image, index) => {
+    const previous = existing.find((item) => item.imageData === image)
+    if (previous) {
+      reusedIds.push(previous.id)
+      return { secureUrl: previous.imageData, publicId: previous.publicId ?? '' }
+    }
+    return uploadSpecialImage(image, index)
+  }))
+  uploaded.push(...prepared)
+  const batchId = randomUUID()
+  if (existing.length > 0) {
+    await db
+      .update(specialGalleryImages)
+      .set({ isActive: false })
+      .where(eq(specialGalleryImages.isActive, true))
+  }
+  if (reusedIds.length > 0) {
+    await db.delete(specialGalleryImages).where(inArray(specialGalleryImages.id, reusedIds))
+  }
+  if (uploaded.length > 0) {
+    await db.insert(specialGalleryImages).values(
+      uploaded.map(({ secureUrl, publicId }, sort) => ({ imageData: secureUrl, publicId, batchId, sort, isActive: true })),
+    )
+  }
+  await cleanupExpiredSpecialGalleryImages()
+}
+
+export type SpecialGalleryHistory = { id: string; publishedAt: string; images: string[] }
+
+export async function listSpecialGalleryHistory(): Promise<SpecialGalleryHistory[]> {
+  await cleanupExpiredSpecialGalleryImages()
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const rows = await db
+    .select({ imageData: specialGalleryImages.imageData, batchId: specialGalleryImages.batchId, createdAt: specialGalleryImages.createdAt })
+    .from(specialGalleryImages)
+    .where(gte(specialGalleryImages.createdAt, cutoff))
+    .orderBy(asc(specialGalleryImages.createdAt), asc(specialGalleryImages.sort))
+  const batches = new Map<string, SpecialGalleryHistory>()
+  for (const row of rows) {
+    const id = row.batchId ?? `legacy-${row.createdAt.toISOString()}`
+    const batch = batches.get(id) ?? { id, publishedAt: row.createdAt.toISOString(), images: [] }
+    batch.images.push(row.imageData)
+    batches.set(id, batch)
+  }
+  return [...batches.values()].reverse()
+}
+
+/** Keep previous galleries available for seven days before removing their files. */
+export async function cleanupExpiredSpecialGalleryImages(): Promise<void> {
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const expired = await db
+    .select({ id: specialGalleryImages.id, publicId: specialGalleryImages.publicId })
+    .from(specialGalleryImages)
+    .where(and(eq(specialGalleryImages.isActive, false), lt(specialGalleryImages.createdAt, cutoff)))
+  await Promise.all(expired.flatMap(({ publicId }) => publicId ? [deleteSpecialImage(publicId)] : []))
+  if (expired.length > 0) {
+    await db.delete(specialGalleryImages).where(
+      and(eq(specialGalleryImages.isActive, false), lt(specialGalleryImages.createdAt, cutoff)),
+    )
+  }
 }
 
 type Row = { special: typeof dailySpecials.$inferSelect; item: typeof menuItems.$inferSelect; categoryName: string }

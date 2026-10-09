@@ -1,61 +1,34 @@
-import { useState } from 'react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { AppShell } from '../../components/AppShell'
-import { Badge, Empty, ErrorNote, Spinner } from '../../components/ui'
+import { Empty, ErrorNote, Spinner } from '../../components/ui'
 import { api } from '../../lib/api'
-import { dateLabel, todayInGoa } from '../../lib/format'
 import { useAsync } from '../../lib/hooks'
 
-/**
- * A read-only log: what was actually shown as Today's Special on a given day.
- * Reconstructed from when each special was added/removed and which weekdays
- * it repeats on - see specialsHistory() on the backend.
- */
+function publishedLabel(value: string): string {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+}
+
+/** Read-only view of the image galleries retained during the last seven days. */
 export default function SpecialsHistory(): ReactNode {
-  const [date, setDate] = useState(todayInGoa())
-  const state = useAsync(() => api.specials.history(date), [date])
-  const items = state.data?.items ?? []
+  const state = useAsync(() => api.specials.galleryHistory(), [])
+  const galleries = state.data?.galleries ?? []
+  const [selected, setSelected] = useState(0)
+  const gallery = galleries[selected]
 
   return (
-    <AppShell title="Specials history" subtitle="What was shown on a past day">
-      <label className="mb-4 block">
-        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Date
-        </span>
-        <input
-          type="date"
-          value={date}
-          max={todayInGoa()}
-          onChange={(event) => setDate(event.target.value)}
-          className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base text-ink outline-none focus:border-ink"
-        />
-      </label>
-
-      {state.loading ? <Spinner label="Loading" /> : null}
+    <AppShell title="Past Special Menus" subtitle="Published image galleries kept for seven days.">
+      {state.loading ? <Spinner label="Loading past specials" /> : null}
       {state.error ? <ErrorNote message={state.error.message} onRetry={state.reload} /> : null}
-
-      {state.data ? (
-        items.length === 0 ? (
-          <Empty title="Nothing was special that day" hint={dateLabel(date)} />
-        ) : (
-          <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {items.map((item) => (
-              <li key={item.id} className="flex items-center gap-3 p-3">
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-sm font-semibold">{item.name}</span>
-                    {item.source === 'custom' ? <Badge tone="amber">Custom</Badge> : null}
-                  </span>
-                  {item.description ? (
-                    <span className="block truncate text-xs text-slate-500">{item.description}</span>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )
-      ) : null}
+      {state.data && galleries.length === 0 ? <Empty title="No past special menus" hint="Published galleries will appear here." /> : null}
+      {gallery ? <>
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+          {galleries.map((item, index) => <button key={item.id} type="button" onClick={() => setSelected(index)} className={`shrink-0 rounded-xl px-3 py-2 text-left text-xs font-bold ${index === selected ? 'bg-ink text-cream' : 'bg-white text-slate-600'}`}><span className="block">{publishedLabel(item.publishedAt)}</span><span className="mt-0.5 block font-normal opacity-70">{item.images.length} images</span></button>)}
+        </div>
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {gallery.images.map((image, index) => <div key={image} className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><img src={image} alt={`Past special image ${index + 1}`} className="aspect-[3/4] w-full object-cover" /><p className="p-2 text-xs font-semibold text-slate-600">{index === 0 ? 'Landing image' : `Carousel image ${index + 1}`}</p></div>)}
+        </section>
+      </> : null}
     </AppShell>
   )
 }

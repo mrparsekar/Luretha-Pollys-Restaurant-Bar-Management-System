@@ -84,24 +84,29 @@ export function ItemSheet({
       {item.description ? <p className="mb-3 text-sm text-slate-500">{item.description}</p> : null}
 
       {resolved.isVariant ? (
-        <div className="mb-4 grid grid-cols-2 gap-2">
+        <div className="mb-4 grid gap-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Choose peg size</p>
           {item.variants.map((option) => (
             <button
               key={option.id}
+              type="button"
               onClick={() => {
                 setVariant(option)
                 setAmount('')
               }}
-              className={`min-h-14 rounded-xl border-2 px-3 text-left text-sm font-semibold ${
+              className={`flex min-h-16 items-center gap-3 rounded-xl border-2 px-4 text-left ${
                 variant?.id === option.id
                   ? 'border-ink bg-ink text-cream'
                   : 'border-slate-300 bg-white active:bg-slate-100'
               }`}
             >
-              {option.label}
-              <span className="tnum block text-xs font-normal">
-                {option.pricePaise === null ? 'ask' : rupees(option.pricePaise)}
+              <span dir="ltr" className="min-w-0 flex-1 text-base font-bold">
+                {option.label}
               </span>
+              <span className="tnum shrink-0 text-base font-bold">
+                {option.pricePaise === null ? 'Ask price' : rupees(option.pricePaise)}
+              </span>
+              {variant?.id === option.id ? <span aria-hidden className="text-lg">✓</span> : null}
             </button>
           ))}
         </div>

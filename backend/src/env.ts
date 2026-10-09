@@ -50,6 +50,7 @@ export const env = {
   port: int('PORT', 4000),
   sessionSecret: sessionSecret(),
   databaseUrl: str('DATABASE_URL'),
+  cloudinaryUrl: str('CLOUDINARY_URL'),
   corsOrigin: str('CORS_ORIGIN', 'http://localhost:5173'),
   publicAppUrl: str('PUBLIC_APP_URL', 'http://localhost:5173').replace(/\/+$/, ''),
   /** True only when the browser talks to this API on a different domain. */

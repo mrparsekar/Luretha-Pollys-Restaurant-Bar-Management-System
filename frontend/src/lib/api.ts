@@ -91,7 +91,9 @@ async function request<T>(
     throw new ApiError(
       response.status,
       error?.code ?? 'error',
-      error?.message ?? `Request failed (${response.status}).`,
+      error?.message
+        ? `${error.message}${error.details ? ` ${JSON.stringify(error.details)}` : ''}`
+        : `Request failed (${response.status}).`,
       error?.details,
     )
   }
@@ -102,6 +104,7 @@ async function request<T>(
 const get = <T>(path: string, options?: Options) => request<T>('GET', path, undefined, options)
 const post = <T>(path: string, body?: unknown) => request<T>('POST', path, body)
 const patch = <T>(path: string, body?: unknown) => request<T>('PATCH', path, body)
+const put = <T>(path: string, body?: unknown) => request<T>('PUT', path, body)
 const del = <T>(path: string) => request<T>('DELETE', path)
 
 export type NewLine = {
@@ -157,11 +160,14 @@ export const api = {
 
   specials: {
     public: (options?: Options) =>
-      get<{ restaurantName: string; tagline: string | null; items: SpecialItem[] }>(
+      get<{ restaurantName: string; tagline: string | null; items: SpecialItem[]; images: string[] }>(
         '/specials/public',
         options,
       ),
     list: () => get<{ items: SpecialItem[] }>('/specials'),
+    gallery: () => get<{ images: string[] }>('/specials/gallery'),
+    galleryHistory: () => get<{ galleries: { id: string; publishedAt: string; images: string[] }[] }>('/specials/gallery/history'),
+    saveGallery: (images: string[]) => put<{ images: string[] }>('/specials/gallery', { images }),
     qr: () => get<{ dataUrl: string; url: string }>('/specials/qr'),
     history: (date: string) => get<{ date: string; items: SpecialItem[] }>(`/specials/history/${date}`),
     addMenuItem: (menuItemId: number) =>

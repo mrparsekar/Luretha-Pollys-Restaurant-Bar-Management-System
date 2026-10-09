@@ -11,7 +11,11 @@ import {
   addMenuItemSpecial,
   listActiveSpecials,
   listAllSpecials,
+  listLiveSpecialGalleryImages,
+  listSpecialGalleryImages,
+  listSpecialGalleryHistory,
   removeSpecial,
+  replaceSpecialGalleryImages,
   specialsHistory,
   updateSpecialDays,
 } from '../services/specials.js'
@@ -20,6 +24,10 @@ import { getSettings } from '../services/settings.js'
 export const specialsRouter = Router()
 
 const daysOfWeek = z.array(z.number().int().min(0).max(6)).max(7).nullish()
+const galleryImage = z.string().refine(
+  (value) => (value.startsWith('data:image/') && value.includes(';base64,')) || /^https:\/\/res\.cloudinary\.com\//i.test(value),
+  'Use an image upload or a Cloudinary image URL.',
+)
 
 /**
  * The page every table's QR code opens. One page for the whole restaurant - the
@@ -29,8 +37,12 @@ const daysOfWeek = z.array(z.number().int().min(0).max(6)).max(7).nullish()
 specialsRouter.get(
   '/public',
   asyncHandler(async (_req, res) => {
-    const [settings, items] = await Promise.all([getSettings(), listActiveSpecials()])
-    res.json({ restaurantName: settings.restaurantName, tagline: settings.tagline, items })
+    const [settings, items, images] = await Promise.all([
+      getSettings(),
+      listActiveSpecials(),
+      listLiveSpecialGalleryImages(),
+    ])
+    res.json({ restaurantName: settings.restaurantName, tagline: settings.tagline, items, images })
   }),
 )
 
@@ -60,6 +72,36 @@ specialsRouter.get(
   asyncHandler(async (_req, res) => {
     const url = specialsUrlFor()
     res.json({ dataUrl: await qrDataUrl(url), url })
+  }),
+)
+
+specialsRouter.get(
+  '/gallery',
+  asyncHandler(async (_req, res) => {
+    res.json({ images: await listSpecialGalleryImages() })
+  }),
+)
+
+specialsRouter.get(
+  '/gallery/history',
+  asyncHandler(async (_req, res) => {
+    res.json({ galleries: await listSpecialGalleryHistory() })
+  }),
+)
+
+specialsRouter.put(
+  '/gallery',
+  asyncHandler(async (req, res) => {
+    const body = parseBody(
+      z.object({
+        images: z.array(galleryImage).max(10),
+      }),
+      req.body,
+    )
+    const totalBytes = body.images.reduce((sum, image) => sum + Buffer.byteLength(image, 'utf8'), 0)
+    if (totalBytes > 25 * 1024 * 1024) throw ApiError.badRequest('Please keep the gallery under 25 MB.')
+    await replaceSpecialGalleryImages(body.images)
+    res.json({ images: await listSpecialGalleryImages() })
   }),
 )
 

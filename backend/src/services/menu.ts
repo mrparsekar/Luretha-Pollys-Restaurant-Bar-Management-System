@@ -69,6 +69,13 @@ export const PINNED_DRINKS_CATEGORY_ID = -2
  */
 export const PINNED_SPECIAL_CATEGORY_ID = -3
 
+/** Prevent common RTL/reversed-text entry from turning `30ml` into `Im03`. */
+function normaliseVariantLabel(label: string): string {
+  const value = label.trim()
+  const reversed = value.match(/^[lI]m(\d{2,3})$/i)
+  return reversed ? `${[...(reversed[1] ?? '')].reverse().join('')}ml` : value
+}
+
 const FOOD_GROUPS: readonly MenuGroup[] = ['breakfast', 'food', 'dessert']
 const DRINK_GROUPS: readonly MenuGroup[] = ['bar', 'beverage']
 
@@ -124,7 +131,7 @@ async function loadCategories(at: Date): Promise<MenuCategoryView[]> {
     const list = variantsByItem.get(variant.itemId) ?? []
     list.push({
       id: variant.id,
-      label: variant.label,
+      label: normaliseVariantLabel(variant.label),
       pricePaise: variant.pricePaise,
       needsPrice: variant.pricePaise == null,
     })
@@ -381,11 +388,12 @@ export async function addVariant(
 ): Promise<ItemVariant> {
   assertPrice(input.pricePaise, 'price')
   const item = await findItem(itemId)
+  const label = normaliseVariantLabel(input.label)
 
   const created = (
     await db
       .insert(itemVariants)
-      .values({ itemId: item.id, label: input.label, pricePaise: input.pricePaise, sort: input.sort ?? 0 })
+      .values({ itemId: item.id, label, pricePaise: input.pricePaise, sort: input.sort ?? 0 })
       .returning()
   )[0]
   if (!created) throw new Error('Could not add the size')
@@ -417,8 +425,12 @@ export async function updateVariant(
   const before = (await db.select().from(itemVariants).where(eq(itemVariants.id, id)).limit(1))[0]
   if (!before) throw ApiError.notFound('That size is not on the menu.')
 
-  const updated = (
-    await db.update(itemVariants).set(patch).where(eq(itemVariants.id, id)).returning()
+    const updated = (
+      await db
+        .update(itemVariants)
+        .set('label' in patch && patch.label ? { ...patch, label: normaliseVariantLabel(patch.label) } : patch)
+        .where(eq(itemVariants.id, id))
+        .returning()
   )[0]
   if (!updated) throw new Error('Could not update the size')
 

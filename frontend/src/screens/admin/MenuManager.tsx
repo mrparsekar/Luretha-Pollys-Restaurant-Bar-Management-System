@@ -444,6 +444,7 @@ function ItemEditor({ item, onClose }: { item: MenuItem; onClose: () => void }):
 }
 
 function VariantRow({ variant }: { variant: MenuVariant }): ReactNode {
+  const [label, setLabel] = useState(variant.label)
   const [price, setPrice] = useState(
     variant.pricePaise === null ? '' : String(variant.pricePaise / 100),
   )
@@ -455,7 +456,7 @@ function VariantRow({ variant }: { variant: MenuVariant }): ReactNode {
 
   const save = async () => {
     if (!ok) return
-    if (await action.run(() => api.menu.updateVariant(variant.id, { pricePaise: parsed }))) {
+    if (await action.run(() => api.menu.updateVariant(variant.id, { label: label.trim(), pricePaise: parsed }))) {
       setStatus('saved')
     }
   }
@@ -467,29 +468,30 @@ function VariantRow({ variant }: { variant: MenuVariant }): ReactNode {
   if (status === 'gone') return null
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{variant.label}</span>
-      <Input
-        value={price}
-        onChange={(event) => {
-          setPrice(event.target.value)
-          setStatus('idle')
-        }}
-        inputMode="decimal"
-        aria-label={`${variant.label} price`}
-        className="w-24 shrink-0 text-right"
-      />
-      <Button variant="secondary" disabled={action.busy || !ok} onClick={save} className="shrink-0">
-        {status === 'saved' ? '✓' : 'Save'}
-      </Button>
-      <button
-        onClick={remove}
-        disabled={action.busy}
-        aria-label={`Remove ${variant.label}`}
-        className="min-h-11 shrink-0 px-2 text-lg text-nonveg"
-      >
-        ×
-      </button>
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(6rem,8rem)] gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+      <label className="min-w-0 text-xs font-semibold text-slate-500">
+        Size / peg
+        <Input value={label} onChange={(event) => { setLabel(event.target.value); setStatus('idle') }} dir="ltr" aria-label={`${variant.label} label`} className="mt-1" />
+      </label>
+      <label className="text-xs font-semibold text-slate-500">Price
+        <Input
+          value={price}
+          onChange={(event) => {
+            setPrice(event.target.value)
+            setStatus('idle')
+          }}
+          inputMode="decimal"
+          aria-label={`${variant.label} price`}
+          placeholder="₹ price"
+          className="mt-1 text-right"
+        />
+      </label>
+      <div className="col-span-full grid grid-cols-[1fr_auto] gap-2">
+        <Button variant="secondary" block disabled={action.busy || !ok} onClick={save}>
+          {status === 'saved' ? 'Saved' : 'Save size'}
+        </Button>
+        <button type="button" onClick={remove} disabled={action.busy} aria-label={`Remove ${variant.label}`} className="min-h-11 rounded-xl px-3 text-lg text-nonveg">×</button>
+      </div>
     </div>
   )
 }
@@ -510,24 +512,15 @@ function NewVariant({ itemId, onAdded }: { itemId: number; onAdded: () => void }
   }
 
   return (
-    <div className="flex items-center gap-2 border-t border-dashed border-slate-300 pt-2">
-      <Input
-        value={label}
-        onChange={(event) => setLabel(event.target.value)}
-        placeholder="60ml"
-        aria-label="New size"
-        className="min-w-0 flex-1"
-      />
-      <Input
-        value={price}
-        onChange={(event) => setPrice(event.target.value)}
-        inputMode="decimal"
-        placeholder="₹"
-        aria-label="New size price"
-        className="w-24 shrink-0 text-right"
-      />
-      <Button disabled={action.busy || !ok} onClick={add} className="shrink-0">
-        Add
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(6rem,8rem)] gap-2 border-t border-dashed border-slate-300 pt-3">
+      <label className="min-w-0 text-xs font-semibold text-slate-500">New size / peg
+        <Input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="30ml or 60ml" aria-label="New size" dir="ltr" className="mt-1" />
+      </label>
+      <label className="text-xs font-semibold text-slate-500">Price
+        <Input value={price} onChange={(event) => setPrice(event.target.value)} inputMode="decimal" placeholder="₹" aria-label="New size price" className="mt-1 text-right" />
+      </label>
+      <Button disabled={action.busy || !ok} onClick={add} className="col-span-full" block>
+        Add size
       </Button>
     </div>
   )
