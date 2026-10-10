@@ -69,7 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
   // Warm the menu while the first signed-in screen is opening. This runs in
   // parallel with settings and does not delay the floor or login UI.
   useEffect(() => {
-    if (user) void api.menu.getCached().catch(() => undefined)
+    if (user) {
+      void api.menu.getCached().catch(() => undefined)
+      void api.tables.floorCached().catch(() => undefined)
+    }
   }, [user])
 
   const signedIn = useCallback((next: User) => setUser(next), [])

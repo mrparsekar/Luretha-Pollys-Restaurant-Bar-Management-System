@@ -53,7 +53,7 @@ export default function Reports(): ReactNode {
   const [range, setRange] = useState({ from: today, to: today })
   const [custom, setCustom] = useState(false)
 
-  const state = useAsync(() => api.reports.summary(range), [range.from, range.to])
+  const state = useAsync(() => api.reports.summaryCached(range), [range.from, range.to])
   const report = state.data
   const sheet = report?.sheet
 

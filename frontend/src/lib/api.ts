@@ -57,6 +57,10 @@ type MenuResponse = { menu: MenuCategory[] }
 // wait on the same request again. Writes clear it below.
 let menuCache: MenuResponse | null = null
 let menuRequest: Promise<MenuResponse> | null = null
+const FLOOR_CACHE_MS = 3_000
+let floorCache: { expiresAt: number; data?: FloorResponse; request?: Promise<FloorResponse> } | null = null
+const REPORT_CACHE_MS = 30_000
+const reportCache = new Map<string, { expiresAt: number; data?: ReportSummary; request?: Promise<ReportSummary> }>()
 
 function getCachedMenu(): Promise<MenuResponse> {
   if (menuCache) return Promise.resolve(menuCache)
@@ -75,6 +79,47 @@ function getCachedMenu(): Promise<MenuResponse> {
 
 function invalidateMenuCache(): void {
   menuCache = null
+}
+
+function getCachedFloor(): Promise<FloorResponse> {
+  if (floorCache?.data && floorCache.expiresAt > Date.now()) return Promise.resolve(floorCache.data)
+  if (floorCache?.request) return floorCache.request
+
+  const request = get<FloorResponse>('/tables/floor')
+    .then((data) => {
+      floorCache = { data, expiresAt: Date.now() + FLOOR_CACHE_MS }
+      return data
+    })
+    .catch((error: unknown) => {
+      if (floorCache?.request === request) floorCache = null
+      throw error
+    })
+  floorCache = { expiresAt: 0, request }
+  return request
+}
+
+function invalidateLiveCache(path: string): void {
+  if (path.startsWith('/tables/') || path.startsWith('/orders')) floorCache = null
+}
+
+function getCachedReport(range: { from?: string; to?: string } = {}): Promise<ReportSummary> {
+  const key = `${range.from ?? ''}:${range.to ?? ''}`
+  const existing = reportCache.get(key)
+  if (existing?.data && existing.expiresAt > Date.now()) return Promise.resolve(existing.data)
+  if (existing?.request) return existing.request
+
+  const request = get<ReportSummary>(`/reports/summary${rangeQuery(range)}`)
+    .then((data) => {
+      reportCache.set(key, { data, expiresAt: Date.now() + REPORT_CACHE_MS })
+      return data
+    })
+    .catch((error: unknown) => {
+      const current = reportCache.get(key)
+      if (current?.request === request) reportCache.delete(key)
+      throw error
+    })
+  reportCache.set(key, { expiresAt: 0, request })
+  return request
 }
 
 async function request<T>(
@@ -101,6 +146,7 @@ async function request<T>(
   if (response.status === 401 && !path.startsWith('/auth/')) onUnauthorised?.()
 
   if (method !== 'GET' && path.startsWith('/menu/')) invalidateMenuCache()
+  if (method !== 'GET') invalidateLiveCache(path)
 
   if (response.status === 204) return undefined as T
 
@@ -182,6 +228,7 @@ export const api = {
 
   tables: {
     floor: (options?: Options) => get<FloorResponse>('/tables/floor', options),
+    floorCached: getCachedFloor,
     list: (all = false) => get<{ tables: DiningTable[] }>(`/tables${all ? '?all=1' : ''}`),
     waiters: () => get<{ waiters: { id: number; name: string }[] }>('/tables/waiters'),
     create: (body: Record<string, unknown>) => post<{ table: DiningTable }>('/tables', body),
@@ -281,6 +328,7 @@ export const api = {
   reports: {
     summary: (range: { from?: string; to?: string } = {}) =>
       get<ReportSummary>(`/reports/summary${rangeQuery(range)}`),
+    summaryCached: getCachedReport,
     audit: (query: { limit?: number; action?: string } = {}) => {
       const params = new URLSearchParams()
       if (query.limit) params.set('limit', String(query.limit))

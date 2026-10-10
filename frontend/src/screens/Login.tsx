@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { PinDots, PinPad } from '../components/PinPad'
-import { Button, ErrorNote, Field, Input, LoadingScreen, Spinner } from '../components/ui'
+import { Button, ErrorNote, Field, Input, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 import { useAction, useAsync } from '../lib/hooks'
 import type { LoginStaff, User } from '../lib/types'
@@ -26,7 +26,7 @@ export default function Login(): ReactNode {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  if (booting) return <LoadingScreen label="Checking your session" />
+  if (booting) return null
   if (user) {
     const from = (location.state as { from?: string } | null)?.from
     return <Navigate to={from && from !== '/login' ? from : '/'} replace />

@@ -30,7 +30,7 @@ export default function Floor(): ReactNode {
   // active at once, so the fast poll only kicks in then - otherwise this is
   // one phone polling an API nobody else is about to race.
   const [pollMs, setPollMs] = useState(SOLO_POLL_MS)
-  const state = usePoll((signal) => api.tables.floor({ signal }), pollMs)
+  const state = usePoll(() => api.tables.floorCached(), pollMs)
   const now = useTicker(30_000)
   const navigate = useNavigate()
 

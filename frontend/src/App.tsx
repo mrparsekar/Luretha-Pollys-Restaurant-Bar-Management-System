@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
-import { LoadingScreen } from './components/ui'
 import Login from './screens/Login'
 import Floor from './screens/Floor'
 import NewOrder from './screens/NewOrder'
@@ -34,7 +33,7 @@ function RequireAuth({ children, owner = false }: { children: ReactNode; owner?:
   const { user, booting, isOwner } = useAuth()
   const location = useLocation()
 
-  if (booting) return <LoadingScreen label="Checking your session" />
+  if (booting) return null
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   if (owner && !isOwner) return <Navigate to="/floor" replace />
   return <>{children}</>
@@ -43,7 +42,7 @@ function RequireAuth({ children, owner = false }: { children: ReactNode; owner?:
 /** Owners start on the board, waiters on the floor. */
 function Home(): ReactNode {
   const { user, booting, isOwner } = useAuth()
-  if (booting) return <LoadingScreen label="Opening the app" />
+  if (booting) return null
   if (!user) return <Navigate to="/login" replace />
   return <Navigate to={isOwner ? '/admin' : '/floor'} replace />
 }
