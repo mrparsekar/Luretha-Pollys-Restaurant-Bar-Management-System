@@ -54,8 +54,8 @@ export type DaySheet = {
 }
 
 export async function daySheet(range: Range): Promise<DaySheet> {
-  const totals = (
-    await db
+  const [totalsRows, linesRows, voidedRows, runningRows] = await Promise.all([
+    db
       .select({
         orders: sql<number>`count(*)`,
         covers: sql<number>`coalesce(sum(${orders.guests}), 0)`,
@@ -71,11 +71,9 @@ export async function daySheet(range: Range): Promise<DaySheet> {
         upiPaise: sql<number>`coalesce(sum(case when ${orders.paymentMode} = 'upi' then ${orders.totalPaise} else 0 end), 0)`,
       })
       .from(orders)
-      .where(settledIn(range))
-  )[0]
+      .where(settledIn(range)),
 
-  const lines = (
-    await db
+    db
       .select({
         itemsSold: sql<number>`coalesce(sum(${orderItems.qty}), 0)`,
         food: sql<number>`coalesce(sum(case when ${orderItems.groupSnapshot} <> 'bar' then ${orderItems.unitPricePaise} * ${orderItems.qty} else 0 end), 0)`,
@@ -83,11 +81,9 @@ export async function daySheet(range: Range): Promise<DaySheet> {
       })
       .from(orderItems)
       .innerJoin(orders, eq(orderItems.orderId, orders.id))
-      .where(and(settledIn(range), ne(orderItems.status, 'void')))
-  )[0]
+      .where(and(settledIn(range), ne(orderItems.status, 'void'))),
 
-  const voided = (
-    await db
+    db
       .select({
         lines: sql<number>`count(*)`,
         paise: sql<number>`coalesce(sum(${orderItems.unitPricePaise} * ${orderItems.qty}), 0)`,
@@ -100,11 +96,9 @@ export async function daySheet(range: Range): Promise<DaySheet> {
           lte(orders.businessDate, range.to),
           eq(orderItems.status, 'void'),
         ),
-      )
-  )[0]
+      ),
 
-  const running = (
-    await db
+    db
       .select({
         orders: sql<number>`count(*)`,
         paise: sql<number>`coalesce(sum(${orders.totalPaise}), 0)`,
@@ -116,8 +110,13 @@ export async function daySheet(range: Range): Promise<DaySheet> {
           lte(orders.businessDate, range.to),
           sql`${orders.status} in ('open', 'billed')`,
         ),
-      )
-  )[0]
+      ),
+  ])
+
+  const totals = totalsRows[0]
+  const lines = linesRows[0]
+  const voided = voidedRows[0]
+  const running = runningRows[0]
 
   const count = Number(totals?.orders ?? 0)
   const net = Number(totals?.net ?? 0)

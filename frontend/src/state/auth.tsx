@@ -32,6 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 
   useEffect(() => {
     let live = true
+    // Start both public startup requests together. Login can reuse the staff
+    // request instead of waiting for /auth/me and then starting it afterward.
+    void api.auth.loginStaffCached().catch(() => undefined)
     api.auth
       .me()
       .then((result) => {

@@ -3,6 +3,7 @@ import type {
   BillView,
   DeliveryOutcome,
   DeliveryRow,
+  DaySheet,
   DiningTable,
   FloorResponse,
   LoginStaff,
@@ -50,6 +51,24 @@ export function setUnauthorisedHandler(handler: (() => void) | null): void {
 
 type Options = { signal?: AbortSignal; raw?: boolean }
 
+let loginStaffCache: { staff: LoginStaff[] } | null = null
+let loginStaffRequest: Promise<{ staff: LoginStaff[] }> | null = null
+
+function getCachedLoginStaff(): Promise<{ staff: LoginStaff[] }> {
+  if (loginStaffCache) return Promise.resolve(loginStaffCache)
+  if (!loginStaffRequest) {
+    loginStaffRequest = get<{ staff: LoginStaff[] }>('/auth/staff')
+      .then((result) => {
+        loginStaffCache = result
+        return result
+      })
+      .finally(() => {
+        loginStaffRequest = null
+      })
+  }
+  return loginStaffRequest
+}
+
 type MenuResponse = { menu: MenuCategory[] }
 
 // The menu is shared by the order pad and owner editor, and changes rarely.
@@ -61,6 +80,7 @@ const FLOOR_CACHE_MS = 3_000
 let floorCache: { expiresAt: number; data?: FloorResponse; request?: Promise<FloorResponse> } | null = null
 const REPORT_CACHE_MS = 30_000
 const reportCache = new Map<string, { expiresAt: number; data?: ReportSummary; request?: Promise<ReportSummary> }>()
+let daySheetCache: { expiresAt: number; data?: DaySheet; request?: Promise<DaySheet> } | null = null
 
 function getCachedMenu(): Promise<MenuResponse> {
   if (menuCache) return Promise.resolve(menuCache)
@@ -119,6 +139,23 @@ function getCachedReport(range: { from?: string; to?: string } = {}): Promise<Re
       throw error
     })
   reportCache.set(key, { expiresAt: 0, request })
+  return request
+}
+
+function getCachedDaySheet(): Promise<DaySheet> {
+  if (daySheetCache?.data && daySheetCache.expiresAt > Date.now()) return Promise.resolve(daySheetCache.data)
+  if (daySheetCache?.request) return daySheetCache.request
+
+  const request = get<{ sheet: DaySheet }>('/reports/day-sheet')
+    .then(({ sheet }) => {
+      daySheetCache = { data: sheet, expiresAt: Date.now() + REPORT_CACHE_MS }
+      return sheet
+    })
+    .catch((error: unknown) => {
+      if (daySheetCache?.request === request) daySheetCache = null
+      throw error
+    })
+  daySheetCache = { expiresAt: 0, request }
   return request
 }
 
@@ -195,6 +232,7 @@ export const api = {
   auth: {
     me: () => get<{ user: User | null }>('/auth/me'),
     loginStaff: (options?: Options) => get<{ staff: LoginStaff[] }>('/auth/staff', options),
+    loginStaffCached: getCachedLoginStaff,
     pin: (staffId: number, pin: string) => post<{ user: User }>('/auth/pin', { staffId, pin }),
     owner: (email: string, password: string) =>
       post<{ user: User }>('/auth/owner', { email, password }),
@@ -326,6 +364,7 @@ export const api = {
   },
 
   reports: {
+    daySheetCached: getCachedDaySheet,
     summary: (range: { from?: string; to?: string } = {}) =>
       get<ReportSummary>(`/reports/summary${rangeQuery(range)}`),
     summaryCached: getCachedReport,

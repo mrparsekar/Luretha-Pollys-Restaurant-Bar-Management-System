@@ -17,7 +17,7 @@ export default function Login(): ReactNode {
   const { user, booting, signedIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const staff = useAsync(() => api.auth.loginStaff(), [])
+  const staff = useAsync(() => api.auth.loginStaffCached(), [])
   const action = useAction()
 
   const [mode, setMode] = useState<'pin' | 'owner'>('pin')

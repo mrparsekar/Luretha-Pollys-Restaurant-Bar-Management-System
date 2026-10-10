@@ -14,7 +14,7 @@ import { usePoll, useTicker } from '../../lib/hooks'
  */
 export default function Board(): ReactNode {
   const running = usePoll((signal) => api.orders.running({ signal }), 15_000)
-  const today = usePoll(() => api.reports.summaryCached(), 60_000)
+  const today = usePoll(() => api.reports.daySheetCached(), 60_000)
   const now = useTicker(30_000)
 
   const orders = [...(running.data?.orders ?? [])].sort(
@@ -22,7 +22,7 @@ export default function Board(): ReactNode {
       new Date(a.lastItemAt ?? a.openedAt).getTime() -
       new Date(b.lastItemAt ?? b.openedAt).getTime(),
   )
-  const sheet = today.data?.sheet
+  const sheet = today.data
 
   return (
     <AppShell
