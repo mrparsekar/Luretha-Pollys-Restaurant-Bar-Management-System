@@ -32,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 
   useEffect(() => {
     let live = true
+    // Never trap the whole app behind a stalled session request. The login
+    // screen remains usable while this check completes in the background.
+    const startupFallback = window.setTimeout(() => {
+      if (live) setBooting(false)
+    }, 5_000)
     // Start both public startup requests together. Login can reuse the staff
     // request instead of waiting for /auth/me and then starting it afterward.
     void api.auth.loginStaffCached().catch(() => undefined)
@@ -44,10 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
         if (live) setUser(null)
       })
       .finally(() => {
-        if (live) setBooting(false)
+        if (live) {
+          window.clearTimeout(startupFallback)
+          setBooting(false)
+        }
       })
     return () => {
       live = false
+      window.clearTimeout(startupFallback)
     }
   }, [])
 

@@ -14,7 +14,7 @@ import { useAuth } from '../state/auth'
  * well, because a password is the thing you can safely type on a laptop.
  */
 export default function Login(): ReactNode {
-  const { user, booting, signedIn } = useAuth()
+  const { user, signedIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const staff = useAsync(() => api.auth.loginStaffCached(), [])
@@ -26,7 +26,6 @@ export default function Login(): ReactNode {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  if (booting) return null
   if (user) {
     const from = (location.state as { from?: string } | null)?.from
     return <Navigate to={from && from !== '/login' ? from : '/'} replace />

@@ -17,7 +17,7 @@ import type { OrderType } from '../lib/types'
 export default function NewOrder(): ReactNode {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const floor = useAsync(() => api.tables.floorCached(), [])
+  const floor = useAsync((signal) => api.tables.floor({ signal }), [])
 
   const [orderType, setOrderType] = useState<OrderType>(
     params.get('type') === 'takeaway' ? 'takeaway' : 'dine_in',

@@ -50,6 +50,7 @@ export function setUnauthorisedHandler(handler: (() => void) | null): void {
 }
 
 type Options = { signal?: AbortSignal; raw?: boolean }
+const REQUEST_TIMEOUT_MS = 15_000
 
 let loginStaffCache: { staff: LoginStaff[] } | null = null
 let loginStaffRequest: Promise<{ staff: LoginStaff[] }> | null = null
@@ -175,6 +176,10 @@ async function request<T>(
   options: Options = {},
 ): Promise<T> {
   let response: Response
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort('timeout'), REQUEST_TIMEOUT_MS)
+  const abortFromCaller = () => controller.abort(options.signal?.reason)
+  options.signal?.addEventListener('abort', abortFromCaller, { once: true })
   try {
     response = await fetch(`${BASE}${path}`, {
       method,
@@ -182,11 +187,17 @@ async function request<T>(
       credentials: 'include',
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
-      ...(options.signal ? { signal: options.signal } : {}),
+      signal: controller.signal,
     })
   } catch (cause) {
+    if (controller.signal.reason === 'timeout') {
+      throw new ApiError(0, 'timeout', 'The server took too long to respond. Please try again.', cause)
+    }
     // Beach Wi-Fi drops. Say so plainly rather than showing "Failed to fetch".
     throw new ApiError(0, 'offline', 'No connection. Check the Wi-Fi and try again.', cause)
+  } finally {
+    window.clearTimeout(timeout)
+    options.signal?.removeEventListener('abort', abortFromCaller)
   }
 
   if (response.status === 401 && !path.startsWith('/auth/')) onUnauthorised?.()
