@@ -1,29 +1,32 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
-import { Spinner } from './components/ui'
-import Login from './screens/Login'
-import Floor from './screens/Floor'
-import NewOrder from './screens/NewOrder'
-import Orders from './screens/Orders'
-import Tab from './screens/Tab'
-import MenuPick from './screens/MenuPick'
-import Kot from './screens/Kot'
-import StaffBill from './screens/StaffBill'
-import PublicBill from './screens/PublicBill'
-import TodaysSpecial from './screens/TodaysSpecial'
-import Board from './screens/admin/Board'
-import OrderAdmin from './screens/admin/OrderAdmin'
-import Reports from './screens/admin/Reports'
-import MenuManager from './screens/admin/MenuManager'
-import TablesManager from './screens/admin/TablesManager'
-import StaffManager from './screens/admin/StaffManager'
-import SettingsScreen from './screens/admin/SettingsScreen'
-import SpecialsManager from './screens/admin/SpecialsManager'
-import SpecialsHistory from './screens/admin/SpecialsHistory'
-import More from './screens/admin/More'
-import Verify from './screens/admin/Verify'
+import { LoadingScreen } from './components/ui'
 import { useAuth } from './state/auth'
+
+// Keep the initial bundle focused on routing and authentication. Screens are
+// downloaded only when the user navigates to them.
+const Login = lazy(() => import('./screens/Login'))
+const Floor = lazy(() => import('./screens/Floor'))
+const NewOrder = lazy(() => import('./screens/NewOrder'))
+const Orders = lazy(() => import('./screens/Orders'))
+const Tab = lazy(() => import('./screens/Tab'))
+const MenuPick = lazy(() => import('./screens/MenuPick'))
+const Kot = lazy(() => import('./screens/Kot'))
+const StaffBill = lazy(() => import('./screens/StaffBill'))
+const PublicBill = lazy(() => import('./screens/PublicBill'))
+const TodaysSpecial = lazy(() => import('./screens/TodaysSpecial'))
+const Board = lazy(() => import('./screens/admin/Board'))
+const OrderAdmin = lazy(() => import('./screens/admin/OrderAdmin'))
+const Reports = lazy(() => import('./screens/admin/Reports'))
+const MenuManager = lazy(() => import('./screens/admin/MenuManager'))
+const TablesManager = lazy(() => import('./screens/admin/TablesManager'))
+const StaffManager = lazy(() => import('./screens/admin/StaffManager'))
+const SettingsScreen = lazy(() => import('./screens/admin/SettingsScreen'))
+const SpecialsManager = lazy(() => import('./screens/admin/SpecialsManager'))
+const SpecialsHistory = lazy(() => import('./screens/admin/SpecialsHistory'))
+const More = lazy(() => import('./screens/admin/More'))
+const Verify = lazy(() => import('./screens/admin/Verify'))
 
 /**
  * Route gates are a convenience, not the security boundary: the API checks the
@@ -34,7 +37,7 @@ function RequireAuth({ children, owner = false }: { children: ReactNode; owner?:
   const { user, booting, isOwner } = useAuth()
   const location = useLocation()
 
-  if (booting) return <Spinner label="Signing in" />
+  if (booting) return <LoadingScreen label="Checking your session" />
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   if (owner && !isOwner) return <Navigate to="/floor" replace />
   return <>{children}</>
@@ -43,14 +46,15 @@ function RequireAuth({ children, owner = false }: { children: ReactNode; owner?:
 /** Owners start on the board, waiters on the floor. */
 function Home(): ReactNode {
   const { user, booting, isOwner } = useAuth()
-  if (booting) return <Spinner label="Loading" />
+  if (booting) return <LoadingScreen label="Opening the app" />
   if (!user) return <Navigate to="/login" replace />
   return <Navigate to={isOwner ? '/admin' : '/floor'} replace />
 }
 
 export default function App(): ReactNode {
   return (
-    <Routes>
+    <Suspense fallback={<LoadingScreen label="Opening this screen" />}>
+      <Routes>
       {/* Public: the link a guest gets on WhatsApp. */}
       <Route path="/bill/:token" element={<PublicBill />} />
       {/* Public: what every table's QR code opens - one page for the whole restaurant. */}
@@ -211,7 +215,8 @@ export default function App(): ReactNode {
         }
       />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   )
 }
