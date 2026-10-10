@@ -122,6 +122,15 @@ function invalidateLiveCache(path: string): void {
   if (path.startsWith('/tables/') || path.startsWith('/orders')) floorCache = null
 }
 
+/** Drop user-scoped data when the shared staff account changes on this device. */
+export function clearSessionCaches(): void {
+  menuCache = null
+  menuRequest = null
+  floorCache = null
+  reportCache.clear()
+  daySheetCache = null
+}
+
 function getCachedReport(range: { from?: string; to?: string } = {}): Promise<ReportSummary> {
   const key = `${range.from ?? ''}:${range.to ?? ''}`
   const existing = reportCache.get(key)

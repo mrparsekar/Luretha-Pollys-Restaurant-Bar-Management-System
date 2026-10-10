@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { api, setUnauthorisedHandler } from '../lib/api'
+import { api, clearSessionCaches, setUnauthorisedHandler } from '../lib/api'
 import type { Settings, User } from '../lib/types'
 
 type AuthValue = {
@@ -95,19 +95,24 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
     try {
       await api.auth.logout()
     } finally {
+      clearSessionCaches()
       setUser(null)
       purgeDraftRounds()
     }
   }, [])
 
   const switchUser = useCallback((next: User) => {
+    clearSessionCaches()
     setUser(next)
     purgeDraftRounds()
   }, [])
 
   // Any 401 from anywhere means the 12h session expired mid-shift.
   useEffect(() => {
-    setUnauthorisedHandler(() => setUser(null))
+    setUnauthorisedHandler(() => {
+      clearSessionCaches()
+      setUser(null)
+    })
     return () => setUnauthorisedHandler(null)
   }, [])
 

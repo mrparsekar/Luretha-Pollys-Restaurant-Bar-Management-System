@@ -104,6 +104,35 @@ export function Spinner({ label = 'Loading' }: { label?: string }): ReactNode {
   )
 }
 
+/** App-level fallback while a route chunk or session request is opening. */
+export function LoadingScreen({ label = 'Loading' }: { label?: string }): ReactNode {
+  return (
+    <div className="min-h-dvh bg-cream text-ink">
+      <header className="safe-top border-b border-ink-soft bg-ink text-cream">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 lg:max-w-5xl lg:px-6">
+          <div>
+            <div className="h-4 w-36 animate-pulse rounded bg-cream/25" />
+            <div className="mt-2 h-3 w-24 animate-pulse rounded bg-cream/15" />
+          </div>
+          <div className="size-11 animate-pulse rounded-xl bg-cream/15" />
+        </div>
+      </header>
+      <main className="mx-auto max-w-3xl px-4 py-6 lg:max-w-5xl lg:px-6">
+        <div className="mb-6 flex items-center gap-3">
+          <span aria-hidden className="size-5 animate-spin rounded-full border-2 border-slate-300 border-t-ink" />
+          <span role="status" className="text-sm text-slate-500">{label}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <div key={item} className="h-28 animate-pulse rounded-2xl bg-slate-200/80" />
+          ))}
+        </div>
+      </main>
+      <div className="safe-bottom fixed inset-x-0 bottom-0 h-16 animate-pulse border-t border-slate-200 bg-white" />
+    </div>
+  )
+}
+
 /** Failures are shown, never swallowed: the API's message is already staff-facing. */
 export function ErrorNote({
   message,
