@@ -50,6 +50,33 @@ export function setUnauthorisedHandler(handler: (() => void) | null): void {
 
 type Options = { signal?: AbortSignal; raw?: boolean }
 
+type MenuResponse = { menu: MenuCategory[] }
+
+// The menu is shared by the order pad and owner editor, and changes rarely.
+// Keep one in-memory result per page session so reopening the order pad does not
+// wait on the same request again. Writes clear it below.
+let menuCache: MenuResponse | null = null
+let menuRequest: Promise<MenuResponse> | null = null
+
+function getCachedMenu(): Promise<MenuResponse> {
+  if (menuCache) return Promise.resolve(menuCache)
+  if (!menuRequest) {
+    menuRequest = get<MenuResponse>('/menu')
+      .then((result) => {
+        menuCache = result
+        return result
+      })
+      .finally(() => {
+        menuRequest = null
+      })
+  }
+  return menuRequest
+}
+
+function invalidateMenuCache(): void {
+  menuCache = null
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -72,6 +99,8 @@ async function request<T>(
   }
 
   if (response.status === 401 && !path.startsWith('/auth/')) onUnauthorised?.()
+
+  if (method !== 'GET' && path.startsWith('/menu/')) invalidateMenuCache()
 
   if (response.status === 204) return undefined as T
 
@@ -133,7 +162,9 @@ export const api = {
   },
 
   menu: {
-    get: () => get<{ menu: MenuCategory[] }>('/menu'),
+    get: () => get<MenuResponse>('/menu'),
+    getCached: getCachedMenu,
+    invalidateCache: invalidateMenuCache,
     verificationSheet: () => get<{ sections: VerificationSection[] }>('/menu/verification-sheet'),
     updateItem: (id: number, body: Record<string, unknown>) =>
       patch<{ item: unknown }>(`/menu/items/${id}`, body),

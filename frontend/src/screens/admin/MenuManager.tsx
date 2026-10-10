@@ -29,7 +29,7 @@ function priceLabel(item: MenuItem): string {
  * settled order never moves when the owner edits this screen.
  */
 export default function MenuManager(): ReactNode {
-  const state = useAsync(() => api.menu.get(), [])
+  const state = useAsync(() => api.menu.getCached(), [])
   const [query, setQuery] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [editing, setEditing] = useState<MenuItem | null>(null)

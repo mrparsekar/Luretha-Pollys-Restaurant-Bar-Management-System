@@ -33,7 +33,7 @@ export default function MenuPick(): ReactNode {
   const pendingGuestName = searchParams.get('guestName')
   const repeatLastRound = searchParams.get('repeat') === '1'
 
-  const menu = useAsync(() => api.menu.get(), [])
+  const menu = useAsync(() => api.menu.getCached(), [])
   const detail = useAsync(
     (signal) => (orderId ? api.orders.detail(orderId, { signal }) : Promise.resolve(null)),
     [orderId],
