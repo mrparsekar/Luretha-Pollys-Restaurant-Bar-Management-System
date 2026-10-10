@@ -37,8 +37,10 @@ function create(): AppDb {
   const url = env.databaseUrl
 
   if (url) {
-    // prepare:false is required behind Supabase's transaction pooler.
-    const sql = postgres(url, { max: 5, prepare: false })
+    // Vercel can run many serverless instances at once. Keep one connection
+    // per instance and use Supabase's transaction pooler (port 6543) so the
+    // database's session connection limit cannot be exhausted by a burst.
+    const sql = postgres(url, { max: 1, prepare: false })
     globalForDb.__pgSql = sql
     return drizzlePostgres(sql, { schema })
   }
