@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AppShell } from '../../components/AppShell'
@@ -37,6 +37,8 @@ export default function SpecialsManager(): ReactNode {
   const [showQr, setShowQr] = useState(false)
   const [initialised, setInitialised] = useState(false)
   const [inputError, setInputError] = useState<string | null>(null)
+  const imageCards = useRef<Map<number, HTMLDivElement>>(new Map())
+  const dragIndex = useRef<number | null>(null)
 
   useEffect(() => {
     if (state.data && !initialised) {
@@ -81,8 +83,34 @@ export default function SpecialsManager(): ReactNode {
       return next
     })
   }
-  const dropImage = (target: number) => {
-    if (draggingIndex !== null) reorder(draggingIndex, target)
+
+  const startDrag = (event: ReactPointerEvent<HTMLDivElement>, index: number) => {
+    if ((event.target as HTMLElement).closest('button')) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    dragIndex.current = index
+    setDraggingIndex(index)
+  }
+
+  const moveDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const from = dragIndex.current
+    if (from === null) return
+    const target = [...imageCards.current.entries()].find(([, card]) => {
+      const rect = card.getBoundingClientRect()
+      return event.clientX >= rect.left && event.clientX <= rect.right &&
+        event.clientY >= rect.top && event.clientY <= rect.bottom
+    })?.[0]
+    if (target === undefined || target === from) return
+    reorder(from, target)
+    dragIndex.current = target
+    setDraggingIndex(target)
+  }
+
+  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    dragIndex.current = null
     setDraggingIndex(null)
   }
   const dirty = JSON.stringify(images) !== JSON.stringify(savedImages)
@@ -106,7 +134,7 @@ export default function SpecialsManager(): ReactNode {
       {images.length > 0 ? <section className="mb-5">
         <div className="mb-2 flex items-center justify-between"><h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Drag to arrange</h2><span className="text-xs text-slate-400">Touch or drag · {images.length}/{MAX_IMAGES}</span></div>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {images.map((image, index) => <div key={`${image.slice(0, 32)}-${index}`} draggable onPointerDown={() => setDraggingIndex(index)} onPointerUp={() => dropImage(index)} onPointerCancel={() => setDraggingIndex(null)} onDragStart={() => setDraggingIndex(index)} onDragOver={(event) => event.preventDefault()} onDrop={() => dropImage(index)} onDragEnd={() => setDraggingIndex(null)} className={`relative aspect-[3/4] touch-none overflow-hidden rounded-xl border-2 border-transparent bg-white ${draggingIndex === index ? 'opacity-40' : ''}`}><img src={image} alt={index === 0 ? 'Landing image' : `Carousel image ${index + 1}`} className="h-full w-full object-cover" /><span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">{index === 0 ? 'Landing' : `Carousel ${index + 1}`}</span><button type="button" onClick={() => remove(index)} className="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-black/65 text-lg text-white" aria-label={`Remove image ${index + 1}`}>×</button></div>)}
+          {images.map((image, index) => <div key={`${image.slice(0, 32)}-${index}`} ref={(card) => { if (card) imageCards.current.set(index, card); else imageCards.current.delete(index) }} onPointerDown={(event) => startDrag(event, index)} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} className={`relative aspect-[3/4] touch-none select-none overflow-hidden rounded-xl border-2 border-transparent bg-white ${draggingIndex === index ? 'opacity-40' : ''}`}><img draggable={false} src={image} alt={index === 0 ? 'Landing image' : `Carousel image ${index + 1}`} className="h-full w-full object-cover" /><span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">{index === 0 ? 'Landing' : `Carousel ${index + 1}`}</span><button type="button" onClick={() => remove(index)} className="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-black/65 text-lg text-white" aria-label={`Remove image ${index + 1}`}>×</button></div>)}
         </div>
       </section> : null}
 
