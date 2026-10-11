@@ -11,17 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.5.8",
-    "cookie-parser": "1.4.7",
-    "cors": "2.8.6",
-    "drizzle-orm": "0.45.2",
-    "nodemailer": "9.1.0",
-    "postgres": "3.4.9",
-    "qrcode": "1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-router-dom": "7.18.3",
-    "zod": "4.5.4"
+    "react-router-dom": "7.18.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
