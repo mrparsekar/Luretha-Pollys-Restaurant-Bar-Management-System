@@ -73,4 +73,10 @@ export const env = {
   },
 } as const
 
+if (isProd && !env.databaseUrl) {
+  throw new Error(
+    'DATABASE_URL must be set in production. Configure the Supabase transaction-pooler URL before deploying the API.',
+  )
+}
+
 export const mailEnabled = env.smtp.host.length > 0
