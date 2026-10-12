@@ -27,17 +27,28 @@ export type SpecialView = {
 }
 
 export async function listSpecialGalleryImages(): Promise<string[]> {
-  await cleanupExpiredSpecialGalleryImages()
+  const rows = await db
+    .select({ imageData: specialGalleryImages.imageData })
+    .from(specialGalleryImages)
+    .where(eq(specialGalleryImages.isActive, true))
+    .orderBy(asc(specialGalleryImages.sort), asc(specialGalleryImages.id))
+  // Retention is maintenance, not part of serving the live QR page. A slow or
+  // unavailable Cloudinary API must never take the current special offline.
+  void cleanupExpiredSpecialGalleryImages().catch((error: unknown) => {
+    console.error('[specials] gallery cleanup failed:', error)
+  })
+  return rows.map((row) => row.imageData)
+}
+
+export async function listLiveSpecialGalleryImages(): Promise<string[]> {
+  // Public QR traffic must only read the active rows. Retention cleanup is
+  // deliberately kept out of this path because it talks to Cloudinary.
   const rows = await db
     .select({ imageData: specialGalleryImages.imageData })
     .from(specialGalleryImages)
     .where(eq(specialGalleryImages.isActive, true))
     .orderBy(asc(specialGalleryImages.sort), asc(specialGalleryImages.id))
   return rows.map((row) => row.imageData)
-}
-
-export async function listLiveSpecialGalleryImages(): Promise<string[]> {
-  return listSpecialGalleryImages()
 }
 
 export async function replaceSpecialGalleryImages(images: readonly string[]): Promise<void> {
@@ -71,13 +82,14 @@ export async function replaceSpecialGalleryImages(images: readonly string[]): Pr
       uploaded.map(({ secureUrl, publicId }, sort) => ({ imageData: secureUrl, publicId, batchId, sort, isActive: true })),
     )
   }
-  await cleanupExpiredSpecialGalleryImages()
+  void cleanupExpiredSpecialGalleryImages().catch((error: unknown) => {
+    console.error('[specials] gallery cleanup failed:', error)
+  })
 }
 
 export type SpecialGalleryHistory = { id: string; publishedAt: string; images: string[] }
 
 export async function listSpecialGalleryHistory(): Promise<SpecialGalleryHistory[]> {
-  await cleanupExpiredSpecialGalleryImages()
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   const rows = await db
     .select({ imageData: specialGalleryImages.imageData, batchId: specialGalleryImages.batchId, createdAt: specialGalleryImages.createdAt })
@@ -91,6 +103,9 @@ export async function listSpecialGalleryHistory(): Promise<SpecialGalleryHistory
     batch.images.push(row.imageData)
     batches.set(id, batch)
   }
+  void cleanupExpiredSpecialGalleryImages().catch((error: unknown) => {
+    console.error('[specials] gallery cleanup failed:', error)
+  })
   return [...batches.values()].reverse()
 }
 
@@ -101,10 +116,13 @@ export async function cleanupExpiredSpecialGalleryImages(): Promise<void> {
     .select({ id: specialGalleryImages.id, publicId: specialGalleryImages.publicId })
     .from(specialGalleryImages)
     .where(and(eq(specialGalleryImages.isActive, false), lt(specialGalleryImages.createdAt, cutoff)))
-  await Promise.all(expired.flatMap(({ publicId }) => publicId ? [deleteSpecialImage(publicId)] : []))
-  if (expired.length > 0) {
+  const results = await Promise.allSettled(expired.map(({ publicId }) => publicId ? deleteSpecialImage(publicId) : Promise.resolve()))
+  const deletableIds = expired
+    .filter((_, index) => results[index]?.status === 'fulfilled')
+    .map(({ id }) => id)
+  if (deletableIds.length > 0) {
     await db.delete(specialGalleryImages).where(
-      and(eq(specialGalleryImages.isActive, false), lt(specialGalleryImages.createdAt, cutoff)),
+      and(eq(specialGalleryImages.isActive, false), lt(specialGalleryImages.createdAt, cutoff), inArray(specialGalleryImages.id, deletableIds)),
     )
   }
 }

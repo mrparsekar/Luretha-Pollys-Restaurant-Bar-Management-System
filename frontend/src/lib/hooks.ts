@@ -72,12 +72,14 @@ export function usePoll<T>(
 ): AsyncState<T> {
   const state = useAsync(run, deps)
   const reload = state.reload
+  const loadingRef = useRef(state.loading)
+  loadingRef.current = state.loading
 
   useEffect(() => {
     let timer: number | undefined
 
     const tick = () => {
-      if (document.visibilityState === 'visible') reload()
+      if (document.visibilityState === 'visible' && !loadingRef.current) reload()
     }
     const start = () => {
       window.clearInterval(timer)
@@ -87,7 +89,7 @@ export function usePoll<T>(
     // Coming back to the app should show fresh numbers immediately.
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
-        reload()
+        if (!loadingRef.current) reload()
         start()
       } else {
         window.clearInterval(timer)

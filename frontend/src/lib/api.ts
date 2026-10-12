@@ -50,7 +50,10 @@ export function setUnauthorisedHandler(handler: (() => void) | null): void {
 }
 
 type Options = { signal?: AbortSignal; raw?: boolean }
-const REQUEST_TIMEOUT_MS = 15_000
+// Vercel/Supabase can occasionally need longer on a cold serverless/database
+// wake-up. The poller prevents overlapping requests, so this does not create a
+// request storm while we give the first request time to finish.
+const REQUEST_TIMEOUT_MS = 30_000
 
 let loginStaffCache: { staff: LoginStaff[] } | null = null
 let loginStaffRequest: Promise<{ staff: LoginStaff[] }> | null = null
