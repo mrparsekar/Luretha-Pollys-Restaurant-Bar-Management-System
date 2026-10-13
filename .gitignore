@@ -26,3 +26,4 @@ tsconfig.tsbuildinfo
 .vscode/
 .idea/
 migration_backup.sql
+restore_log.txt
