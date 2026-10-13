@@ -25,3 +25,4 @@ Thumbs.db
 tsconfig.tsbuildinfo
 .vscode/
 .idea/
+migration_backup.sql

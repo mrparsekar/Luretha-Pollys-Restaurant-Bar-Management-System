@@ -5,5 +5,5 @@
     { "src": "/api/(.*)", "dest": "api/index.ts" },
     { "src": "/(.*)", "dest": "api/index.ts" }
   ],
-  "regions": ["icn1"]
+  "regions": ["bom1"]
 }
