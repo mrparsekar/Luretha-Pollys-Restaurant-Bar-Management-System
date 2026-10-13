@@ -40,7 +40,11 @@ function create(): AppDb {
     // Vercel can run many serverless instances at once. Keep one connection
     // per instance and use Supabase's transaction pooler (port 6543) so the
     // database's session connection limit cannot be exhausted by a burst.
-    const sql = postgres(url, { max: 1, prepare: false })
+    // idle_timeout/max_lifetime force a reconnect before Supabase's pooler or
+    // the network path can silently drop a long-lived or idle socket - without
+    // this, a warm instance keeps trying to use a dead connection and every
+    // request on it hangs until Vercel happens to cold-start a new one.
+    const sql = postgres(url, { max: 1, prepare: false, idle_timeout: 20, max_lifetime: 60 * 30, connect_timeout: 10 })
     globalForDb.__pgSql = sql
     return drizzlePostgres(sql, { schema })
   }
