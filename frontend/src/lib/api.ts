@@ -245,7 +245,7 @@ async function get<T>(path: string, options: Options = {}): Promise<T> {
   } catch (cause) {
     const retryable = cause instanceof ApiError && (cause.status === 0 || cause.status >= 500)
     if (!retryable || options.signal?.aborted) throw cause
-    await new Promise((resolve) => window.setTimeout(resolve, 1000))
+    await new Promise((resolve) => window.setTimeout(resolve, 400))
     return request<T>('GET', path, undefined, options)
   }
 }
