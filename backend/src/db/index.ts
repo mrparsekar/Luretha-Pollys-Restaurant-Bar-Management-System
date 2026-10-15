@@ -33,37 +33,109 @@ type DbGlobal = {
 // PGlite handle on the same data directory.
 const globalForDb = globalThis as unknown as DbGlobal
 
-function create(): AppDb {
-  const url = env.databaseUrl
+const QUERY_TIMEOUT_MS = 12_000
 
-  if (url) {
-    // Vercel can run many serverless instances at once. Keep one connection
-    // per instance and use Supabase's transaction pooler (port 6543) so the
-    // database's session connection limit cannot be exhausted by a burst.
-    // idle_timeout/max_lifetime force a reconnect before Supabase's pooler or
-    // the network path can silently drop a long-lived or idle socket - without
-    // this, a warm instance keeps trying to use a dead connection and every
-    // request on it hangs until Vercel happens to cold-start a new one.
-    // statement_timeout/lock_timeout/idle_in_transaction_session_timeout make
-    // Postgres itself give up on a runaway query or lock wait. Without these,
-    // a single stuck query holds the one connection forever, and with max:1
-    // every other request on that instance queues behind it until Vercel's
-    // own function timeout kills the whole thing minutes later.
+/**
+ * Vercel can freeze a warm instance between requests and resume it later; if
+ * the pooler or the network path drops the TCP connection while frozen, the
+ * instance wakes up holding a socket that looks open but will never answer -
+ * Postgres never sees it, so statement_timeout can't help, and the OS can
+ * take a very long time to notice a dead peer on its own. With max:1, every
+ * other request on that instance then queues behind the one hung query.
+ *
+ * Drizzle's postgres-js driver only ever reaches the database through
+ * sql.unsafe() (every select/insert/update/delete) and sql.begin()
+ * (transactions) - see node_modules/drizzle-orm/postgres-js/session.js.
+ * Wrapping just those two race every real query against our own timeout and,
+ * on expiry, throw the connection away and build a fresh one so the next
+ * request isn't handed the same wedged socket.
+ */
+function buildPostgresDb(url: string): AppDb {
+  let current: AppDb
+
+  const build = (): void => {
     const sql = postgres(url, {
+      // Keep one connection per instance and use Supabase's transaction
+      // pooler (port 6543) so the database's connection limit can't be
+      // exhausted by a burst of concurrent serverless instances.
       max: 1,
       prepare: false,
+      // Force a reconnect before a long-lived or merely-idle socket can be
+      // silently dropped out from under us.
       idle_timeout: 20,
       max_lifetime: 60 * 30,
       connect_timeout: 10,
+      // Belt-and-suspenders: Supabase's pooler caps this at 2min regardless
+      // and may not forward it at all, but it costs nothing to ask.
       connection: {
         statement_timeout: 15_000,
         lock_timeout: 8_000,
         idle_in_transaction_session_timeout: 10_000,
       },
     })
+
+    const originalUnsafe = sql.unsafe.bind(sql)
+    sql.unsafe = ((...args: Parameters<typeof originalUnsafe>) => {
+      const query = originalUnsafe(...args)
+      const originalThen = query.then.bind(query)
+      query.then = ((onFulfilled?: unknown, onRejected?: unknown) =>
+        guard(new Promise((resolve, reject) => originalThen(resolve, reject))).then(
+          onFulfilled as never,
+          onRejected as never,
+        )) as typeof query.then
+      return query
+    }) as typeof sql.unsafe
+
+    const originalBegin = sql.begin.bind(sql)
+    sql.begin = ((...args: Parameters<typeof originalBegin>) =>
+      guard(originalBegin(...args))) as typeof sql.begin
+
     globalForDb.__pgSql = sql
-    return drizzlePostgres(sql, { schema })
+    current = drizzlePostgres(sql, { schema })
   }
+
+  const guard = <T>(promise: Promise<T>): Promise<T> =>
+    new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        recreate()
+        reject(new Error('Database is not responding. Please try again.'))
+      }, QUERY_TIMEOUT_MS)
+      promise.then(
+        (value) => {
+          clearTimeout(timer)
+          resolve(value)
+        },
+        (error: unknown) => {
+          clearTimeout(timer)
+          reject(error)
+        },
+      )
+    })
+
+  const recreate = (): void => {
+    try {
+      globalForDb.__pgSql?.end({ timeout: 0 })
+    } catch {
+      // Already broken - nothing left to clean up.
+    }
+    build()
+  }
+
+  build()
+
+  // `db` is imported by name across the app; this proxy keeps that binding
+  // stable while letting recreate() swap the live connection underneath it.
+  return new Proxy({} as AppDb, {
+    get(_target, prop, _receiver) {
+      return Reflect.get(current as object, prop, current)
+    },
+  })
+}
+
+function create(): AppDb {
+  const url = env.databaseUrl
+
+  if (url) return buildPostgresDb(url)
 
   // PGlite's own mkdir is not recursive, so ensure the parent exists first.
   fs.mkdirSync(PGLITE_DIR, { recursive: true })
