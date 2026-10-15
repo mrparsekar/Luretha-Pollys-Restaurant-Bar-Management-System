@@ -236,7 +236,20 @@ async function request<T>(
   return payload as T
 }
 
-const get = <T>(path: string, options?: Options) => request<T>('GET', path, undefined, options)
+// Reads are safe to retry; writes are not (a retried POST could double-submit
+// an order or a payment). A rare dead connection or network blip should not
+// surface as an error to someone just viewing the floor or the menu.
+async function get<T>(path: string, options: Options = {}): Promise<T> {
+  try {
+    return await request<T>('GET', path, undefined, options)
+  } catch (cause) {
+    const retryable = cause instanceof ApiError && (cause.status === 0 || cause.status >= 500)
+    if (!retryable || options.signal?.aborted) throw cause
+    await new Promise((resolve) => window.setTimeout(resolve, 1000))
+    return request<T>('GET', path, undefined, options)
+  }
+}
+
 const post = <T>(path: string, body?: unknown) => request<T>('POST', path, body)
 const patch = <T>(path: string, body?: unknown) => request<T>('PATCH', path, body)
 const put = <T>(path: string, body?: unknown) => request<T>('PUT', path, body)
