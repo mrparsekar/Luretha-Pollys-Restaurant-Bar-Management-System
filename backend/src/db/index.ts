@@ -44,7 +44,23 @@ function create(): AppDb {
     // the network path can silently drop a long-lived or idle socket - without
     // this, a warm instance keeps trying to use a dead connection and every
     // request on it hangs until Vercel happens to cold-start a new one.
-    const sql = postgres(url, { max: 1, prepare: false, idle_timeout: 20, max_lifetime: 60 * 30, connect_timeout: 10 })
+    // statement_timeout/lock_timeout/idle_in_transaction_session_timeout make
+    // Postgres itself give up on a runaway query or lock wait. Without these,
+    // a single stuck query holds the one connection forever, and with max:1
+    // every other request on that instance queues behind it until Vercel's
+    // own function timeout kills the whole thing minutes later.
+    const sql = postgres(url, {
+      max: 1,
+      prepare: false,
+      idle_timeout: 20,
+      max_lifetime: 60 * 30,
+      connect_timeout: 10,
+      connection: {
+        statement_timeout: 15_000,
+        lock_timeout: 8_000,
+        idle_in_transaction_session_timeout: 10_000,
+      },
+    })
     globalForDb.__pgSql = sql
     return drizzlePostgres(sql, { schema })
   }
