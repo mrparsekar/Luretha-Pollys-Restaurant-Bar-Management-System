@@ -145,12 +145,12 @@ export function BillPaper({
 
       <footer className="mt-3 border-t border-dashed border-slate-400 pt-3 text-center text-xs">
         {bill.footer ? <p>{bill.footer}</p> : null}
-        {bill.reviewQrDataUrl ? (
+        {/* {bill.reviewQrDataUrl ? (
           <div className="keep-together mt-2">
             <img src={bill.reviewQrDataUrl} alt="Scan to leave a review" className="mx-auto size-24" />
             <p className="mt-1 text-slate-500">Scan to leave us a review</p>
           </div>
-        ) : null}
+        ) : null} */}
         {bill.voided.length > 0 ? (
           <p className="a4-only mt-2 text-slate-400">
             {bill.voided.length} voided {bill.voided.length === 1 ? 'line' : 'lines'} not charged
